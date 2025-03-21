@@ -12,6 +12,9 @@ dependencies = [
   "sphinx==8.2.3"
 ]
 
+[tool.setuptools.package-data]
+pyee=["data/*"]
+
 [tool.setuptools.dynamic]
 version = {attr = "pyee.__version__"}  # any module attribute compatible with ast.literal_eval
 readme = {file = ["README.md"]}
