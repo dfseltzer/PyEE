@@ -1,18 +1,7 @@
-.. pyee documentation master file
-
-PyEE documentation
-==================
-Version |version|, documentation build |today|.
-
-.. raw:: html
-
-   <hr>
-
+pyee
+====
 
 .. toctree::
-    :maxdepth: 2
-    :caption: Contents:
+   :maxdepth: 4
 
-    usage
-    math
-    units
+   pyee

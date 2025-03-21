@@ -1,4 +1,0 @@
-Units
-=====
-
-.. automodule:: pyee.math

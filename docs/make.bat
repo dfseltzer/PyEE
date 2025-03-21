@@ -7,6 +7,9 @@ REM Command file for Sphinx documentation
 if "%SPHINXBUILD%" == "" (
 	set SPHINXBUILD=sphinx-build
 )
+if "%SPHINXAUTOAPI%" == "" (
+	set SPHINXAUTOAPI=sphinx-autoapi
+)
 set SOURCEDIR=source
 set BUILDDIR=build
 
