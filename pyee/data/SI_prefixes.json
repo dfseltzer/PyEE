@@ -1,0 +1,46 @@
+{
+  "P": {
+    "name": "peta",
+    "factor": 1e15
+  },
+  "T": {
+    "name": "tera",
+    "factor": 1e12
+  },
+  "G": {
+    "name": "giga",
+    "factor": 1e9
+  },
+  "M": {
+    "name": "mega",
+    "factor": 1e6
+  },
+  "k": {
+    "name": "kilo",
+    "factor": 1e3
+  },
+  "": {
+    "name": "",
+    "factor": 1e0
+  },
+  "m": {
+    "name": "milli",
+    "factor": 1e-3
+  },
+  "u": {
+    "name": "micro",
+    "factor": 1e-6
+  },
+  "n": {
+    "name": "nano",
+    "factor": 1e-9
+  },
+  "p": {
+    "name": "pico",
+    "factor": 1e-12
+  },
+  "f": {
+    "name": "femto",
+    "factor": 1e-15
+  }
+}

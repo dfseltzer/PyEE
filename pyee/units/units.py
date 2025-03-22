@@ -21,14 +21,98 @@ Attempting to write pascals as "kg/m.s^2" is incorrect.
 import re
 import logging
 
-from docutils.io import Input, InputError
+from ..utilities import load_data_file
 
 logger = logging.getLogger(__name__)
 
 class PhysicalQuantity:
-    def __init__(self, value=None, units=None):
-        self.__v = value
-        self.__u = units
+    def __init__(self, value=None, units=None, prefix=None):
+        self.v = value
+        self.p = prefix
+        if not isinstance(units, Units):
+            try:
+                units = Units.from_string(units)
+            except (ValueError, TypeError):
+                logger.debug(f"units provided not an instance or a proper string... just using as is: {units}")
+                units = Units(units)
+        self.u = units
+
+
+class Prefix:
+    """
+    SI prefixes.  Stored as three components...
+    n = name   (i.e. kilo)
+    f = factor (i.e. 1000)
+    s = symbol (i.e. k)
+
+    Call directly with a symbol, or use the helper class methods from_name or from_number
+    """
+    _DATA_FILE = "SI_prefixes"
+    _data_by_symbol = None
+    _data_by_name = None
+    _data_by_value = None
+    _data_value_scale = None
+
+    @classmethod
+    def from_name(cls, pstring):
+        """
+        Searches for a prefix matching the given symbol.  Does not check for multiple matches... as
+        this should never happen.  If no match is made, raises key error.
+        :param pstring:
+        :return:
+        """
+        pobj = Prefix() # forces load of initial dict... dumb but simple
+
+        if cls._data_by_name is None:
+            cls._data_by_name = {d["name"]: {"symbol":s, "factor":d["factor"]} for s, d in cls._data_by_symbol.items()}
+
+        pdata = cls._data_by_name[pstring]
+
+        pobj.n = pstring
+        pobj.f = pdata["factor"]
+        pobj.s = pdata["symbol"]
+
+        return pobj
+
+
+    @classmethod
+    def from_number(cls, pnum):
+        """
+        Returns the closest prefix to use for the given number.  Attempts to use a prefix that
+        will result in a number formatted "well", meaning 1-3 digits ahead of the decimal place.
+
+        :param pnum: number to find a prefix for
+        :return: new prefix object
+        """
+        pobj = Prefix()  # forces load of initial dict... dumb but simple
+        if cls._data_by_value is None:
+            cls._data_by_value = {d["factor"]: {"symbol":s, "name":d["name"]} for s, d in cls._data_by_symbol.items()}
+            cls._data_value_scale = sorted(cls._data_by_value.keys())
+
+        # if greater than 1, we want the next smallest factor.
+        diffs = [1 if (pnum - v) > 0 else 0 for v in cls._data_value_scale]
+
+        factornum = cls._data_value_scale[max(diffs.index(0)-1,0)]
+
+        pobj.s = cls._data_by_value[factornum]["symbol"]
+        pobj.n = cls._data_by_value[factornum]["name"]
+        pobj.f = factornum
+
+        return pobj
+
+    def __init__(self, symbol=None):
+        if self._data_by_symbol is None:
+            Prefix._data_by_symbol = load_data_file(Prefix._DATA_FILE)
+
+        self.f = None
+        self.n = None
+        self.s = symbol
+
+        if self.s is None:
+            return
+
+        self.f = self._data_by_symbol[symbol]["factor"]
+        self.n = self._data_by_symbol[symbol]["name"]
 
 
 class Units:
