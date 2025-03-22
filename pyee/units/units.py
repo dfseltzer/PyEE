@@ -118,15 +118,7 @@ class Units:
         try: # get base data if exists
             s2 = other.s
         except AttributeError: # if not, try and make a new units from it
-            try:
-                ou = Units.from_string(other)
-                s2 = ou.s
-            except InputError as e:
-                logging.exception(f"Unable to convert input {other} to a unit for multiplication.")
-                raise e
-            except Exception as e:
-                logging.exception(f"Unknown error during convert... {e}")
-                raise e
+            s2 = self.__get_s_from_other(other)
 
         ur = {u: self.s.get(u,0) + s2.get(u,0) for u in set(self.s.keys() | s2.keys())}
         return Units(ur)
@@ -159,10 +151,36 @@ class Units:
         pass
 
     def __eq__(self, other):
-        pass
+        try:
+            s2 = other.s
+        except AttributeError:
+            s2 = self.__get_s_from_other(other)
+        return self.s == s2
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def __get_s_from_other(self, other):
+        """
+        Internal method. Attempts to get a units-exponents dictionary from an object.
+        This should be called after an initial check for an "s" attribute is attempted.
+
+        Used mainly as a helper for overloaded math functions.
+
+        :return: a dictionary if possible.
+        :raises InputError: if cannot convert a string to a units class
+        :raises Exception: if something else happens, just passes it along.
+        """
+        try:
+            ou = Units.from_string(other)
+            s = ou.s
+        except InputError as e:
+            logging.exception(f"Unable to convert input {other} to a unit for multiplication.")
+            raise e
+        except Exception as e:
+            logging.exception(f"Unknown error during convert... {e}")
+            raise e
+        return s
 
     @property
     def n(self):
