@@ -264,7 +264,8 @@ class Units:
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def __get_s_from_other(self, other):
+    @staticmethod
+    def __get_s_from_other(other):
         """
         Internal method. Attempts to get a units-exponents dictionary from an object.
         This should be called after an initial check for an "s" attribute is attempted.
@@ -278,7 +279,7 @@ class Units:
         try:
             ou = Units.from_string(other)
             s = ou.s
-        except InputError as e:
+        except ValueError as e:
             logging.exception(f"Unable to convert input {other} to a unit for multiplication.")
             raise e
         except Exception as e:
