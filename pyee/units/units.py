@@ -107,8 +107,6 @@ class Units:
         """
         self.s = {"1":1} if s is None else s
 
-        self.components = None
-
     def __repr__(self):
         p1 = sorted([f"{s}^{e}" if e > 1 else s for s, e in self.s.items() if e > 0])
         p2 = sorted([f"{s}^{-e}" if e < -1 else s for s, e in self.s.items() if e < 0])
@@ -127,16 +125,24 @@ class Units:
         return self.__mul__(other)
 
     def __sub__(self, other):
-        pass
+        if self == other:
+            return
+        raise TypeError(f"Units do not support subtraction (not equal) for {self} and {other}")
 
     def __rsub__(self, other):
-        pass
+        if self == other:
+            return
+        raise TypeError(f"Units do not support (r)subtraction (not equal) for {self} and {other}")
 
     def __add__(self, other):
-        pass
+        if self == other:
+            return
+        raise TypeError(f"Units do not support addition (not equal) for {self} and {other}")
 
     def __radd__(self, other):
-        pass
+        if self == other:
+            return
+        raise TypeError(f"Units do not support (r)addition (not equal) for {self} and {other}")
 
     def __div__(self, other):
         return self.__truediv__(other)
@@ -145,10 +151,24 @@ class Units:
         return self.__rtruediv__(other)
 
     def __truediv__(self, other):
-        pass
+        # we are numerator, other is denominator
+        try:  # get base data if exists
+            s2 = other.s
+        except AttributeError:  # if not, try and make a new units from it
+            s2 = self.__get_s_from_other(other)
+
+        ur = {u: self.s.get(u, 0) - s2.get(u, 0) for u in set(self.s.keys() | s2.keys())}
+        return Units(ur)
 
     def __rtruediv__(self, other):
-        pass
+        # we are denominator, other is numerator
+        try:  # get base data if exists
+            s2 = other.s
+        except AttributeError:  # if not, try and make a new units from it
+            s2 = self.__get_s_from_other(other)
+
+        ur = {u: s2.get(u, 0) - self.s.get(u, 0) for u in set(self.s.keys() | s2.keys())}
+        return Units(ur)
 
     def __eq__(self, other):
         try:
