@@ -26,28 +26,41 @@ from ..utilities import load_data_file
 logger = logging.getLogger(__name__)
 
 class PhysicalQuantity:
-    def __init__(self, value, units):
-        self.p = Prefix.from_number(value)
-        self.v = value/self.p
-        if not isinstance(units, Units):
-            try:
-                units = Units.from_string(units)
-            except (ValueError, TypeError):
-                logger.warning(f"units provided not an instance or a proper string... just using as is: {units}")
-                units = Units(units)
-        self.u = units
+    def __init__(self, value=None, units=None):
+        self.p = None
+        self.v = None
+        self.u = None
+
+        if value is not None:
+            self.p = Prefix.from_number(value)
+            self.v = value/self.p
+
+        if units is not None:
+            if not isinstance(units, Units):
+                try:
+                    units = Units.from_string(units)
+                except (ValueError, TypeError):
+                    logger.warning(f"units provided not an instance or a proper string... just using as is: {units}")
+                    units = Units(units)
+            self.u = units
 
     def __repr__(self):
         return f"{self.v:6.2f}{self.p} [{self.u}]"
 
     def __mul__(self, other):
-        pass
+        if isinstance(other, PhysicalQuantity):
+            return PhysicalQuantity(
+                value=self.v*self.p*other.v*other.p,
+                units=self.u*other.u
+            )
+        else: #try scalar multiply
+            return PhysicalQuantity(value=self.v*self.p*other, units=self.u)
 
     def __rmul__(self, other):
         return self.__mul__(other)
 
     def __sub__(self, other):
-        pass
+
 
     def __rsub__(self, other):
         pass
