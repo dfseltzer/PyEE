@@ -60,16 +60,53 @@ class PhysicalQuantity:
         return self.__mul__(other)
 
     def __sub__(self, other):
-        pass
+        try:
+            self.u - other.u
+        except AttributeError as e:
+            logger.error(f"Unable to find units for subtraction: {self} and {other}.  Exception was: {e}")
+            raise e
+        except TypeError as e:
+            logger.error(f"Units not compatible for subtraction: {self.u} and {other.u}")
+            raise e
+
+        return PhysicalQuantity(value=self.v*self.p - other.v*other.p, units=self.u.copy())
 
     def __rsub__(self, other):
-        pass
+        try:
+            other.u - self.u
+        except AttributeError as e:
+            logger.error(f"Unable to find units for operation: {other} and {self}.  Exception was: {e}")
+            raise e
+        except TypeError as e:
+            logger.error(f"Units not compatible for subtraction: {other.u} and {self.u}")
+            raise e
+
+        return PhysicalQuantity(value=other.v * other.p - self.v * self.p,
+                                units=self.u.copy())
 
     def __add__(self, other):
-        pass
+        try:
+            self.u + other.u
+        except AttributeError as e:
+            logger.error(f"Unable to find units for addition: {self} and {other}.  Exception was: {e}")
+            raise e
+        except TypeError as e:
+            logger.error(f"Units not compatible for addition: {self.u} and {other.u}")
+            raise e
+
+        return PhysicalQuantity(value=self.v * self.p + other.v * other.p, units=self.u.copy())
 
     def __radd__(self, other):
-        pass
+        try:
+            other.u + self.u
+        except AttributeError as e:
+            logger.error(f"Unable to find units for addition: {other} and {self}.  Exception was: {e}")
+            raise e
+        except TypeError as e:
+            logger.error(f"Units not compatible for addition: {other.u} and {self.u}")
+            raise e
+
+        return PhysicalQuantity(value=other.v * other.p + self.v * self.p, units=self.u.copy())
 
     def __div__(self, other):
         return self.__truediv__(other)
@@ -78,13 +115,22 @@ class PhysicalQuantity:
         return self.__rtruediv__(other)
 
     def __truediv__(self, other):
-        pass
+        nv = self.v*self.p/(other.v*other.p)
+        nu = self.u/other.u
+        return PhysicalQuantity(value=nv, units=nu)
 
     def __rtruediv__(self, other):
-        pass
+        nv = (other.v * other.p) / self.v * self.p
+        nu = other.u /self.u
+        return PhysicalQuantity(value=nv, units=nu)
 
     def __eq__(self, other):
-        pass
+        if self.u != other.u:
+            return False
+        elif self.v*self.p != other.v*other.p:
+            return False
+        else:
+            return True
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -129,7 +175,7 @@ class Prefix:
         return pobj
 
     @classmethod
-    def from_number(cls, pnum):
+    def from_number(cls, num):
         """
         Returns the closest prefix to use for the given number.  Attempts to use a prefix that
         will result in a number formatted "well", meaning 1-3 digits ahead of the decimal place.
@@ -141,6 +187,9 @@ class Prefix:
         if cls._data_by_value is None:
             cls._data_by_value = {d["factor"]: {"symbol":s, "name":d["name"]} for s, d in cls._data_by_symbol.items()}
             cls._data_value_scale = sorted(cls._data_by_value.keys())
+
+        snum = 1 if num > 0 else - 1
+        pnum = abs(num)
 
         # if greater than 1, we want the next smallest factor.
         diffs = [1 if (pnum - v) > 0 else 0 for v in cls._data_value_scale]
@@ -390,6 +439,9 @@ class Units:
             logging.exception(f"Unknown error during convert... {e}")
             raise e
         return s
+
+    def copy(self):
+        return Units(s=self.s.copy())
 
     @property
     def n(self):
