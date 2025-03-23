@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 
 class PhysicalQuantity:
     def __init__(self, value, units):
-        self.v = value
+        self.p = Prefix.from_number(value)
+        self.v = value/self.p
         if not isinstance(units, Units):
             try:
                 units = Units.from_string(units)
@@ -35,10 +36,9 @@ class PhysicalQuantity:
                 logger.warning(f"units provided not an instance or a proper string... just using as is: {units}")
                 units = Units(units)
         self.u = units
-        self.p = Prefix.from_number(value)
 
     def __repr__(self):
-        pass
+        return f"{self.v:6.2f}{self.p} [{self.u}]"
 
     def __mul__(self, other):
         pass
@@ -75,8 +75,6 @@ class PhysicalQuantity:
 
     def __ne__(self, other):
         return not self.__eq__(other)
-
-
 
 class Prefix:
     """
@@ -141,6 +139,15 @@ class Prefix:
         pobj.f = factornum
 
         return pobj
+
+    def __repr__(self):
+        if self.n == "":
+            return f"Prefix [Nameless]: {self.f}"
+        else:
+            return f"Prefix [{self.s}] {self.n}: {self.f}"
+
+    def __str__(self):
+        return self.s
 
     def __init__(self, symbol=None):
         if self._data_by_symbol is None:
