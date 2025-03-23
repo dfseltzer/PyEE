@@ -26,16 +26,56 @@ from ..utilities import load_data_file
 logger = logging.getLogger(__name__)
 
 class PhysicalQuantity:
-    def __init__(self, value=None, units=None, prefix=None):
+    def __init__(self, value, units):
         self.v = value
-        self.p = prefix
         if not isinstance(units, Units):
             try:
                 units = Units.from_string(units)
             except (ValueError, TypeError):
-                logger.debug(f"units provided not an instance or a proper string... just using as is: {units}")
+                logger.warning(f"units provided not an instance or a proper string... just using as is: {units}")
                 units = Units(units)
         self.u = units
+        self.p = Prefix.from_number(value)
+
+    def __repr__(self):
+        pass
+
+    def __mul__(self, other):
+        pass
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __sub__(self, other):
+        pass
+
+    def __rsub__(self, other):
+        pass
+
+    def __add__(self, other):
+        pass
+
+    def __radd__(self, other):
+        pass
+
+    def __div__(self, other):
+        return self.__truediv__(other)
+
+    def __rdiv__(self, other):
+        return self.__rtruediv__(other)
+
+    def __truediv__(self, other):
+        pass
+
+    def __rtruediv__(self, other):
+        pass
+
+    def __eq__(self, other):
+        pass
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
 
 
 class Prefix:
@@ -46,6 +86,9 @@ class Prefix:
     s = symbol (i.e. k)
 
     Call directly with a symbol, or use the helper class methods from_name or from_number
+
+    Supports multiplication and division.  If used against another Prefix instance, returns a
+    new Prefix instance.  Otherwise acts like a number and attempts the operation.
     """
     _DATA_FILE = "SI_prefixes"
     _data_by_symbol = None
@@ -73,7 +116,6 @@ class Prefix:
         pobj.s = pdata["symbol"]
 
         return pobj
-
 
     @classmethod
     def from_number(cls, pnum):
@@ -114,6 +156,35 @@ class Prefix:
         self.f = self._data_by_symbol[symbol]["factor"]
         self.n = self._data_by_symbol[symbol]["name"]
 
+    def __mul__(self, other):
+        if isinstance(other, Prefix):
+            return Prefix.from_number(self.f * other.f)
+        else:
+            return self.f * other
+
+    def __rmul__(self, other):
+        if isinstance(other, Prefix):
+            return Prefix.from_number(other.f * self.f)
+        else:
+            return other * self.f
+
+    def __div__(self, other):
+        return self.__truediv__(other)
+
+    def __rdiv__(self, other):
+        return self.__rtruediv__(other)
+
+    def __truediv__(self, other):
+        if isinstance(other, Prefix):
+            return Prefix.from_number(self.f / other.f)
+        else:
+            return self.f / other
+
+    def __rtruediv__(self, other):
+        if isinstance(other, Prefix):
+            return Prefix.from_number(other.f / self.f)
+        else:
+            return other / self.f
 
 class Units:
     re_den_group = re.compile(r"/\([a-zA-Z]+(?:\^[+-]?\d+)?(?:\.+[a-zA-Z]+(?:\^[+-]?\d+)?)*\)")
