@@ -1,0 +1,67 @@
+{
+  "V": {
+    "name": "volt",
+    "quantity": "electric potential",
+    "base": "kg.m^2.s^-3.A^-1"
+  },
+  "Ohm": {
+    "name": "ohm",
+    "quantity": "electrical resistance",
+    "base": "kg.m^2.s^-3.A^-2"
+  },
+  "F": {
+    "name": "farad",
+    "quantity": "capacitance",
+    "base": "kg^-1.m^-2.s^4.A^2"
+  },
+  "H": {
+    "name": "henry",
+    "quantity": "inductance",
+    "base": "kg.m^2.s^-2.A^-2"
+  },
+  "W": {
+    "name": "watt",
+    "quantity": "power",
+    "base": "kg.m^2.s^-3"
+  },
+  "C": {
+    "name": "coulomb",
+    "quantity": "electric charge",
+    "base": "s.A"
+  },
+  "J": {
+    "name": "joule",
+    "quantity": "energy",
+    "base": "kg.m^2.s^-2"
+  },
+  "S": {
+    "name": "siemens",
+    "quantity": "electrical conductance",
+    "base": "kg^-1.m^-2.s^3.A^2"
+  },
+  "Wb": {
+    "name": "weber",
+    "quantity": "magnetic flux",
+    "base": "kg.m^2.s^-2.A^-1"
+  },
+  "T": {
+    "name": "tesla",
+    "quantity": "magnetic flux density",
+    "base": "kg.s^-2.A^-1"
+  },
+  "Hz": {
+    "name": "hertz",
+    "quantity": "frequency",
+    "base": "s^-1"
+  },
+  "VA": {
+    "name": "volt-ampere",
+    "quantity": "apparent power",
+    "base": "kg.m^2.s^-3"
+  },
+  "var": {
+    "name": "var",
+    "quantity": "reactive power",
+    "base": "kg.m^2.s^-3"
+  }
+}

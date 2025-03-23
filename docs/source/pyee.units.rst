@@ -12,10 +12,10 @@ pyee.units.converters module
    :show-inheritance:
    :undoc-members:
 
-pyee.units.units module
+pyee.units.types module
 -----------------------
 
-.. automodule:: pyee.units.units
+.. automodule:: pyee.units.types
    :members:
    :show-inheritance:
    :undoc-members:

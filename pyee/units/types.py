@@ -25,6 +25,21 @@ from ..utilities import load_data_file
 
 logger = logging.getLogger(__name__)
 
+def load_unit_context(context):
+    """
+    Loads a set of units from a json file.  the filename to be loaded is
+
+    SI_units_<lower(context)>.json
+
+    :param context: file identifier to load
+    :return: dictionary mapping unit symbol to unit name, description, and base, where
+        base is a representation of the unit in SI base types.
+    """
+    fname = f"SI_units_{context.lower()}"
+    rdat = load_data_file(fname)
+    cdat = {s: {"n":d["name"], "info":d["quantity"], "u":Units.from_string(d["base"])} for s, d in rdat.items()}
+    return cdat
+
 class PhysicalQuantity:
     def __init__(self, value=None, units=None):
         self.p = None
@@ -45,7 +60,7 @@ class PhysicalQuantity:
             self.u = units
 
     def __repr__(self):
-        return f"{self.v:6.2f}{self.p} [{self.u}]"
+        return f"{self.v:7.3f}{self.p} [{self.u}]"
 
     def __mul__(self, other):
         if isinstance(other, PhysicalQuantity):
@@ -135,6 +150,17 @@ class PhysicalQuantity:
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def as_base(self, context="Electrical"):
+        """
+        converts units to base units in given context
+
+        :param context: defaults to "Electrical"
+        :return: new Physical Quantities instance in base units
+        """
+
+        newunits = self.u.as_base(context=context)
+        return PhysicalQuantity(value=self.v*self.p, units=newunits)
+
 class Prefix:
     """
     SI prefixes.  Stored as three components...
@@ -188,11 +214,10 @@ class Prefix:
             cls._data_by_value = {d["factor"]: {"symbol":s, "name":d["name"]} for s, d in cls._data_by_symbol.items()}
             cls._data_value_scale = sorted(cls._data_by_value.keys())
 
-        snum = 1 if num > 0 else - 1
         pnum = abs(num)
 
         # if greater than 1, we want the next smallest factor.
-        diffs = [1 if (pnum - v) > 0 else 0 for v in cls._data_value_scale]
+        diffs = [1 if (pnum - v) >= 0 else 0 for v in cls._data_value_scale]
 
         factornum = cls._data_value_scale[max(diffs.index(0)-1,0)]
 
@@ -259,6 +284,8 @@ class Units:
     re_den_group = re.compile(r"/\([a-zA-Z]+(?:\^[+-]?\d+)?(?:\.+[a-zA-Z]+(?:\^[+-]?\d+)?)*\)")
     re_single_den = re.compile(r"/(?P<u>[a-zA-Z]+)(?P<e>\^[+-]?\d+)?")
     re_non_exp_sets = re.compile(r"(?:[a-zA-Z]+(?=\.))|(?:[a-zA-Z]+$)")
+
+    CONTEXTS = dict()
 
     @classmethod
     def from_string(cls, ustring):
@@ -439,6 +466,22 @@ class Units:
             logging.exception(f"Unknown error during convert... {e}")
             raise e
         return s
+
+    def as_base(self, context="Electrical"):
+        if context not in self.CONTEXTS.keys():
+            Units.CONTEXTS[context] = load_unit_context(context)
+
+        cntxt = Units.CONTEXTS[context] # just to avoid typing a bunch...
+
+        sbase = dict()
+        for u, e in self.s.items():
+            if u in cntxt.keys():
+                for su, se in cntxt[u]["u"].s.items():
+                    sbase[su] = sbase.get(su,0) + se*e
+            else:
+                sbase[u] = sbase.get(u, 0) + e
+
+        return Units(s=sbase)
 
     def copy(self):
         return Units(s=self.s.copy())
