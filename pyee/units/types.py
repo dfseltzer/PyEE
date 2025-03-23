@@ -60,7 +60,7 @@ class PhysicalQuantity:
         return self.__mul__(other)
 
     def __sub__(self, other):
-
+        pass
 
     def __rsub__(self, other):
         pass
@@ -278,9 +278,10 @@ class Units:
         a string value of "1" is used to denote unit-less.  In such cases the
         exponent is ignored.
 
-        Stored internally as one dict (s) using negative exponents
+        Stored internally as one dict (s) using negative exponents.
+        Unitless instances have s=={}
         """
-        self.s = {"1":1} if s is None else s
+        self.s = dict() if s is None else s
 
     def __repr__(self):
         p1 = sorted([f"{s}^{e}" if e > 1 else s for s, e in self.s.items() if e > 0])
@@ -302,22 +303,34 @@ class Units:
     def __sub__(self, other):
         if self == other:
             return
-        raise TypeError(f"Units do not support subtraction (not equal) for {self} and {other}")
+        elif not len(self.s) and not isinstance(other, Units):
+            return # we do not have units, and other is not a units class... no check
+        else:
+            raise TypeError(f"Units do not support subtraction (not equal) for {self} and {other}")
 
     def __rsub__(self, other):
         if self == other:
             return
-        raise TypeError(f"Units do not support (r)subtraction (not equal) for {self} and {other}")
+        elif not len(self.s) and not isinstance(other, Units):
+            return # we do not have units, and other is not a units class... no check
+        else:
+            raise TypeError(f"Units do not support (r)subtraction (not equal) for {self} and {other}")
 
     def __add__(self, other):
         if self == other:
             return
-        raise TypeError(f"Units do not support addition (not equal) for {self} and {other}")
+        elif not len(self.s) and not isinstance(other, Units):
+            return # we do not have units, and other is not a units class... no check
+        else:
+            raise TypeError(f"Units do not support addition (not equal) for {self} and {other}")
 
     def __radd__(self, other):
         if self == other:
             return
-        raise TypeError(f"Units do not support (r)addition (not equal) for {self} and {other}")
+        elif not len(self.s) and not isinstance(other, Units):
+            return # we do not have units, and other is not a units class... no check
+        else:
+            raise TypeError(f"Units do not support (r)addition (not equal) for {self} and {other}")
 
     def __div__(self, other):
         return self.__truediv__(other)

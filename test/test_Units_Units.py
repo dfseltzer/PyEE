@@ -1,6 +1,5 @@
 import unittest
 
-
 class TestCase_from_string(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -56,7 +55,6 @@ class TestCase_Units_maths(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    import context
     import logging
     logging.getLogger().setLevel(logging.INFO)
     from pyee.units.types import logger
