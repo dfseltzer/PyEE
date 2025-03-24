@@ -37,10 +37,12 @@ def load_unit_context(context):
     """
     fname = f"SI_units_{context.lower()}"
     rdat = load_data_file(fname)
+    subs = rdat.pop("_subs",dict())
     cdat = {s: {"n":d["name"], "info":d["quantity"], "u":Units.from_string(d["base"])} for s, d in rdat.items()}
+    cdat["_subs"] = {k: (Units.from_string(k, context=context), Units.from_string(v, context=context)) for k, v in subs.items()}
     return cdat
 
-class PhysicalQuantity:
+class PhysicalQuantity(object):
     def __init__(self, value=None, units=None):
         self.p = None
         self.v = None
@@ -150,18 +152,21 @@ class PhysicalQuantity:
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def as_base(self, context="Electrical"):
+    def as_base(self, **kwargs):
         """
         converts units to base units in given context
 
-        :param context: defaults to "Electrical"
         :return: new Physical Quantities instance in base units
         """
 
-        newunits = self.u.as_base(context=context)
+        newunits = self.u.as_base(**kwargs)
         return PhysicalQuantity(value=self.v*self.p, units=newunits)
 
-class Prefix:
+    def simplify(self, **kwargs):
+        newunits = self.u.simplify(**kwargs)
+        return PhysicalQuantity(value=self.v * self.p, units=newunits)
+
+class Prefix(object):
     """
     SI prefixes.  Stored as three components...
     n = name   (i.e. kilo)
@@ -280,7 +285,7 @@ class Prefix:
         else:
             return other / self.f
 
-class Units:
+class Units(object):
     re_den_group = re.compile(r"/\([a-zA-Z]+(?:\^[+-]?\d+)?(?:\.+[a-zA-Z]+(?:\^[+-]?\d+)?)*\)")
     re_single_den = re.compile(r"/(?P<u>[a-zA-Z]+)(?P<e>\^[+-]?\d+)?")
     re_non_exp_sets = re.compile(r"(?:[a-zA-Z]+(?=\.))|(?:[a-zA-Z]+$)")
@@ -288,11 +293,11 @@ class Units:
     CONTEXTS = dict()
 
     @classmethod
-    def from_string(cls, ustring):
+    def from_string(cls, ustring, **kwargs):
         """
         Creates a Unit object from a string representation.
 
-        :param ustring:
+        :param ustring: units strng
         :return: new Units instance
         :raises TypeError: if input is not string type
         :raises ValueError: if ustring cannot be split cleanly
@@ -335,11 +340,11 @@ class Units:
 
         s_full = {k: v for k, v in s_full.items() if v != 0}
 
-        obj = cls(s_full)
+        obj = cls(s_full, **kwargs)
 
         return obj
 
-    def __init__(self, s=None):
+    def __init__(self, s=None, context="Electrical"):
         """
         Units class.  Should be called from one of the .from_* class methods
         in most cases.  If called directly, returns a unitless unit.
@@ -358,6 +363,7 @@ class Units:
         Unitless instances have s=={}
         """
         self.s = dict() if s is None else s
+        self.context = context
 
     def __repr__(self):
         p1 = sorted([f"{s}^{e}" if e > 1 else s for s, e in self.s.items() if e > 0])
@@ -467,11 +473,21 @@ class Units:
             raise e
         return s
 
-    def as_base(self, context="Electrical"):
-        if context not in self.CONTEXTS.keys():
-            Units.CONTEXTS[context] = load_unit_context(context)
+    def as_base(self, context=None):
+        """
+        Expand the units to base units as much as possible.  Uses the instances context
+        if none is give.  If a new context is specified, then updates this units default
+        context to the new value, and loads the context if not already loaded
+        :param context: new context as string, or None to use default
+        :return: new units object with expanded units
+        """
+        if context is not None:
+            self.context = context
 
-        cntxt = Units.CONTEXTS[context] # just to avoid typing a bunch...
+        if self.context not in self.CONTEXTS.keys(): # load new context if we do not have it already
+            Units.CONTEXTS[self.context] = load_unit_context(self.context)
+
+        cntxt = Units.CONTEXTS[self.context] # just to avoid typing a bunch...
 
         sbase = dict()
         for u, e in self.s.items():
@@ -481,10 +497,47 @@ class Units:
             else:
                 sbase[u] = sbase.get(u, 0) + e
 
-        return Units(s=sbase)
+        return Units(s=sbase, context=self.context)
+
+    def simplify(self, context=None):
+        """
+        Simplify the units as much as possible.  Uses the instances context
+        if none is give.  If a new context is specified, then updates this units default
+        context to the new value, and loads the context if not already loaded
+
+        Only able to perform simplifications included in the context's simplification table, or
+        into standard units.  Nothing complicated here... just lookups for common patterns.
+
+        :param context: new context as string, or None to use default
+        :return: new units object with simplified units
+        """
+        if context is not None:
+            self.context = context
+
+        if self.context not in self.CONTEXTS.keys():  # load new context if we do not have it already
+            Units.CONTEXTS[self.context] = load_unit_context(self.context)
+
+        # check basic units first
+        for name, values in self.CONTEXTS[self.context].items():
+            if name[0] == "_": # check first to avoid error
+                pass
+            elif values["u"] == self:
+                return Units.from_string(name, context=self.context)
+            else: # not found... go to next... do nothing :(
+                pass
+
+        # check subs next
+        for key, value in self.CONTEXTS[self.context].items():
+            if self == value[0]:
+                return value[1].copy()
+            else:
+                pass
+
+        # if we are here, we failed to simplify
+        logger.warning(f"Unable to simplify {self} in context: {self.context}")
 
     def copy(self):
-        return Units(s=self.s.copy())
+        return Units(s=self.s.copy(), context=self.context)
 
     @property
     def n(self):
