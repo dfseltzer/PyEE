@@ -18,6 +18,12 @@ Attempting to write pascals as "kg/m.s^2" is incorrect.
 
 """
 
+try:
+    import numpy as np
+except ImportError:
+    class np:
+        pi = 3.1415
+
 import re
 import logging
 
@@ -71,7 +77,7 @@ class PhysicalQuantity(object):
                 units=self.u*other.u
             )
         else: #try scalar multiply
-            return PhysicalQuantity(value=self.v*self.p*other, units=self.u)
+            return type(self)(value=self.v*self.p*other, units=self.u)
 
     def __rmul__(self, other):
         return self.__mul__(other)
@@ -86,7 +92,7 @@ class PhysicalQuantity(object):
             logger.error(f"Units not compatible for subtraction: {self.u} and {other.u}")
             raise e
 
-        return PhysicalQuantity(value=self.v*self.p - other.v*other.p, units=self.u.copy())
+        return type(self)(value=self.v*self.p - other.v*other.p, units=self.u.copy())
 
     def __rsub__(self, other):
         try:
@@ -98,8 +104,7 @@ class PhysicalQuantity(object):
             logger.error(f"Units not compatible for subtraction: {other.u} and {self.u}")
             raise e
 
-        return PhysicalQuantity(value=other.v * other.p - self.v * self.p,
-                                units=self.u.copy())
+        return type(self)(value=other.v * other.p - self.v * self.p, units=self.u.copy())
 
     def __add__(self, other):
         try:
@@ -111,7 +116,7 @@ class PhysicalQuantity(object):
             logger.error(f"Units not compatible for addition: {self.u} and {other.u}")
             raise e
 
-        return PhysicalQuantity(value=self.v * self.p + other.v * other.p, units=self.u.copy())
+        return type(self)(value=self.v * self.p + other.v * other.p, units=self.u.copy())
 
     def __radd__(self, other):
         try:
@@ -123,7 +128,7 @@ class PhysicalQuantity(object):
             logger.error(f"Units not compatible for addition: {other.u} and {self.u}")
             raise e
 
-        return PhysicalQuantity(value=other.v * other.p + self.v * self.p, units=self.u.copy())
+        return type(self)(value=other.v * other.p + self.v * self.p, units=self.u.copy())
 
     def __div__(self, other):
         return self.__truediv__(other)
@@ -134,12 +139,12 @@ class PhysicalQuantity(object):
     def __truediv__(self, other):
         nv = self.v*self.p/(other.v*other.p)
         nu = self.u/other.u
-        return PhysicalQuantity(value=nv, units=nu)
+        return type(self)(value=nv, units=nu)
 
     def __rtruediv__(self, other):
         nv = (other.v * other.p) / self.v * self.p
         nu = other.u /self.u
-        return PhysicalQuantity(value=nv, units=nu)
+        return type(self)(value=nv, units=nu)
 
     def __eq__(self, other):
         if self.u != other.u:
@@ -160,11 +165,11 @@ class PhysicalQuantity(object):
         """
 
         newunits = self.u.as_base(**kwargs)
-        return PhysicalQuantity(value=self.v*self.p, units=newunits)
+        return type(self)(value=self.v*self.p, units=newunits)
 
     def simplify(self, **kwargs):
         newunits = self.u.simplify(**kwargs)
-        return PhysicalQuantity(value=self.v * self.p, units=newunits)
+        return type(self)(value=self.v * self.p, units=newunits)
 
 class Prefix(object):
     """
@@ -511,6 +516,9 @@ class Units(object):
         :param context: new context as string, or None to use default
         :return: new units object with simplified units
         """
+
+        #TODO check if we are base units, and avoid warning about unable to simplify if so
+
         if context is not None:
             self.context = context
 
@@ -527,7 +535,7 @@ class Units(object):
                 pass
 
         # check subs next
-        for key, value in self.CONTEXTS[self.context].items():
+        for key, value in self.CONTEXTS[self.context]["_subs"].items():
             if self == value[0]:
                 return value[1].copy()
             else:
@@ -554,3 +562,35 @@ class Units(object):
         :return: d = [(s, e), ...]
         """
         return Units({s: -e for s, e in self.s.items() if e < 0})
+
+class Impedance(object):
+    """
+    Represents an impedance as a numerator and denominator polynomial in 's'
+    """
+    def __init__(self, value, frequency=None, frequency_units="Hz", *args, **kwargs):
+        """
+        Value must be supplied as a tuple (num, den), where num and den
+        are arrays of coefficients for increasing powers of s, where the array index is the power of s.
+
+        Units are always "V/A"
+
+        :param value: (num=[a0, a1, a2], den=[b0, b1, b2])
+        :param frequency: default frequency for evaluation. defaults to 1kHz
+        :param frequency_units: defaults to "Hz". other values are "rad/s"
+        """
+        super().__init__()
+
+        self.u = Units("V/A")
+
+        if frequency_units == "Hz":
+            self.frequency_units = frequency_units
+            self.frequency = frequency if frequency is not None else 1000
+        elif frequency_units == "rad/s":
+            self.frequency_units = frequency_units
+            self.frequency = 2000*np.pi
+        else:
+            raise ValueError(f"Unknown frequency_units: {frequency_units}. Known values are 'Hz' or 'rad/s'")
+
+        self.n = value[0]
+        self.d = value[1]
+

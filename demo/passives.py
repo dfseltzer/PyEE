@@ -1,4 +1,4 @@
-from pyee.units import PhysicalQuantity
+
 from pyee.passives import Resistor, Inductor, Capacitor
 
 R1 = Resistor(1000)
