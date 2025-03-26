@@ -56,7 +56,6 @@ class PhysicalQuantity(object):
 
         self.u = Units.from_any(units)
 
-
     def __repr__(self):
         return f"{self.v:7.3f}{self.p} [{self.u}]"
 
@@ -147,6 +146,13 @@ class PhysicalQuantity(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    @property
+    def value(self):
+        """
+        :return: value as a scalar
+        """
+        return self.v*self.p
+
     def as_base(self, **kwargs):
         """
         converts units to base units in given context
@@ -160,6 +166,15 @@ class PhysicalQuantity(object):
     def simplify(self, **kwargs):
         newunits = self.u.simplify(**kwargs)
         return type(self)(value=self.v * self.p, units=newunits)
+
+    def update(self, val):
+        """
+        deals with updating prefixes and such when setting value
+        :param val: new value
+        :return: None
+        """
+        self.p = Prefix.from_number(val)
+        self.v = val / self.p
 
 class Prefix(object):
     """
@@ -382,7 +397,7 @@ class Units(object):
     def __repr__(self):
         p1 = sorted([f"{s}^{e}" if e > 1 else s for s, e in self.s.items() if e > 0])
         p2 = sorted([f"{s}^{-e}" if e < -1 else s for s, e in self.s.items() if e < 0])
-        return (".".join(p1) if len(p1) else "1")+(f"/({".".join(p2)})" if len(p2) else "")
+        return (".".join(p1) if len(p1) else "1")+(f"/({'.'.join(p2)})" if len(p2) else "")
 
     def __mul__(self, other):
         try: # get base data if exists
@@ -596,13 +611,11 @@ class DependantPhysicalQuantity(PhysicalQuantity):
         :param var_units: variable units
         """
         super().__init__(value=None, units=units)
-        self.num = num if num is not None else []
-        self.den = den if den is not None else []
-
+        self.num = num if num is not None else [1]
+        self.den = den if den is not None else [1]
         #TODO update num and den to polynomial classes
 
-        self._var0 = var0
-        self.var_units = Units.from_any(var_units)
+        self._var0 = PhysicalQuantity(value=var0, units=var_units)
 
     @property
     def var0(self):
@@ -610,17 +623,20 @@ class DependantPhysicalQuantity(PhysicalQuantity):
 
     @var0.setter
     def var0(self, val):
-        self._var0 = val
+        self._var0.update(val)
 
-    def __call__(self, var):
-        try: # see if var has units...
-            vunits = var.u
-        except AttributeError:
-            vunits = None
+    def __call__(self, var=None):
+        #TODO let this be called with physical quantities as input
+        #TODO update to support input arrays
 
-        if isinstance(vunits, Units):
-            if self.var_units != vunits:
-                logger.warning(f"getting dependant values but variable units do not match: expecting {self.var_units}, got {vunits}")
+        if var is None:
+            var = self._var0.value
+
+        ln = len(self.num)
+        vn = sum([self.num[i] * var ** (ln - i) for i in range(ln)])
+        vd = sum([self.den[i] * var ** (ln - i) for i in range(ln)])
+
+        return vn/vd
 
 class Impedance(object):
     """
