@@ -6,7 +6,7 @@ import json
 import os
 import pathlib
 
-DATA_REL_PATH = r".\data"
+DATA_REL_PATH = r"data"
 DATA_ABS_PATH = None
 
 if DATA_ABS_PATH is None:
