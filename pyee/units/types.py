@@ -18,11 +18,7 @@ Attempting to write pascals as "kg/m.s^2" is incorrect.
 
 """
 
-try:
-    import numpy as np
-except ImportError:
-    class np:
-        pi = 3.1415
+import numpy as np
 
 import re
 import logging
@@ -58,14 +54,8 @@ class PhysicalQuantity(object):
             self.p = Prefix.from_number(value)
             self.v = value/self.p
 
-        if units is not None:
-            if not isinstance(units, Units):
-                try:
-                    units = Units.from_string(units)
-                except (ValueError, TypeError):
-                    logger.warning(f"units provided not an instance or a proper string... just using as is: {units}")
-                    units = Units(units)
-            self.u = units
+        self.u = Units.from_any(units)
+
 
     def __repr__(self):
         return f"{self.v:7.3f}{self.p} [{self.u}]"
@@ -298,6 +288,22 @@ class Units(object):
     CONTEXTS = dict()
 
     @classmethod
+    def from_any(cls, other):
+        if other is not None:
+            if not isinstance(other, cls):
+                try:
+                    obj = cls.from_string(other)
+                except (ValueError, TypeError):
+                    logger.warning(f"units provided not an instance or a proper string... just using as is?: {other}")
+                    obj = cls(other)
+            else: # is a unit, just use it
+                obj = other
+        else: # return empty if none
+            obj = cls()
+        return obj
+
+
+    @classmethod
     def from_string(cls, ustring, **kwargs):
         """
         Creates a Unit object from a string representation.
@@ -307,6 +313,9 @@ class Units(object):
         :raises TypeError: if input is not string type
         :raises ValueError: if ustring cannot be split cleanly
         """
+
+        if ustring == "" or ustring == "1":
+            return cls({}, **kwargs)
 
         #logger.debug(f"Converting {ustring}")
         # convert all /(u^e.u^e) to /u^e/u^e
@@ -563,10 +572,61 @@ class Units(object):
         """
         return Units({s: -e for s, e in self.s.items() if e < 0})
 
+class DependantPhysicalQuantity(PhysicalQuantity):
+    """
+    Physical quantity with some dependence - impedance for example.
+
+    Expands the PhysicalQuantity class by replacing the value scalar by a
+    ratio of polynomials of some variable (represented by "s").  Internally
+    stores as a numerator and denominator array where index is used to
+    represent exponent,
+
+    v[s] = n[s] = [n0, n1, n2, ...]
+           ----   -----------------
+           d[s]   [d0, d1, d2, ...]
+
+    Stored as numpy polynomials internally, so coefficients are reversed
+    """
+    def __init__(self, num=None, den=None, units=None, var0=None, var_units=""):
+        """
+        :param num: numerator array
+        :param den: denominator array
+        :param units: units as string or units class
+        :param var0: default variable value - used when accessing value as scalars
+        :param var_units: variable units
+        """
+        super().__init__(value=None, units=units)
+        self.num = num if num is not None else []
+        self.den = den if den is not None else []
+
+        #TODO update num and den to polynomial classes
+
+        self._var0 = var0
+        self.var_units = Units.from_any(var_units)
+
+    @property
+    def var0(self):
+        return self._var0
+
+    @var0.setter
+    def var0(self, val):
+        self._var0 = val
+
+    def __call__(self, var):
+        try: # see if var has units...
+            vunits = var.u
+        except AttributeError:
+            vunits = None
+
+        if isinstance(vunits, Units):
+            if self.var_units != vunits:
+                logger.warning(f"getting dependant values but variable units do not match: expecting {self.var_units}, got {vunits}")
+
 class Impedance(object):
     """
     Represents an impedance as a numerator and denominator polynomial in 's'
     """
+    #TODO remove this, replace with EE specific wrapper for dependant PQ class
     def __init__(self, value, frequency=None, frequency_units="Hz", *args, **kwargs):
         """
         Value must be supplied as a tuple (num, den), where num and den

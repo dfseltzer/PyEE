@@ -8,6 +8,16 @@ class TestCase_from_string(unittest.TestCase):
 
         cls.Units = Units
 
+    def test_empty_units(self):
+        u = self.Units.from_string("1")
+        self.assertDictEqual(u.s, {})
+
+        u = self.Units.from_string("")
+        self.assertDictEqual(u.s, {})
+
+        u = self.Units({})
+        self.assertDictEqual(u.s, {})
+
     def test_from_string_simple(self):
         # no denominator
         u = self.Units.from_string("m.s")
