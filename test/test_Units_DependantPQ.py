@@ -26,15 +26,22 @@ class TestCase_create(unittest.TestCase):
         self.assertEquals(v2, 8)
 
         v3 = z1([2, 3])
-        self.assertListEqual(list(v3), [3, 4])
-
-        
+        self.assertListEqual(list(v3), [3, 4])        
 
     def test_multiply_instance(self):
-        pass
+        z1 = self.DPQ(num=[1, 1], den=[1], var_units="kg")
+        z2 = self.DPQ(num=[2], den=[1], var_units="1/s")
+        z3 = z1*z2
+
+        self.assertEquals(z3(1), 4)
+        self.assertEquals(z3.u, "kg/s")
 
     def test_multiply_scalar(self):
-        pass
+        z1 = self.DPQ(num=[1, 1], den=[1], var_units="kg")
+        z2 = z1*5
+
+        self.assertEquals(z1(1), 10)
+        self.assertEquals(z1.u, "kg")
 
     def test_subtract(self):
         pass

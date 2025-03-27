@@ -46,15 +46,22 @@ def load_unit_context(context):
 
 class PhysicalQuantity(object):
     def __init__(self, value=None, units=None):
-        self.p = None
-        self.v = None
-        self.u = None
-
         if value is not None:
             self.p = Prefix.from_number(value)
             self.v = value/self.p
+        else:
+            self.p = Prefix()
+            self.v = None
+
 
         self.u = Units.from_any(units)
+
+    def __copy__(self):
+        obj = type(self)()
+        obj.p = self.p.copy()
+        obj.v = self.v
+        obj.u = self.u.copy()
+        return obj
 
     def __repr__(self):
         return f"{self.v:7.3f}{self.p} [{self.u}]"
@@ -163,6 +170,9 @@ class PhysicalQuantity(object):
         newunits = self.u.as_base(**kwargs)
         return type(self)(value=self.v*self.p, units=newunits)
 
+    def copy(self):
+        return self.__copy__()
+
     def simplify(self, **kwargs):
         newunits = self.u.simplify(**kwargs)
         return type(self)(value=self.v * self.p, units=newunits)
@@ -242,6 +252,27 @@ class Prefix(object):
 
         return pobj
 
+    def __init__(self, symbol=""):
+        if self._data_by_symbol is None:
+            Prefix._data_by_symbol = load_data_file(Prefix._DATA_FILE)
+
+        self.f = 1
+        self.n = ""
+        self.s = symbol
+
+        if self.s is None:
+            return
+
+        self.f = self._data_by_symbol[symbol]["factor"]
+        self.n = self._data_by_symbol[symbol]["name"]
+
+    def __copy__(self):
+        obj = type(self)()
+        obj.s = self.s
+        obj.n = self.n
+        obj.f = self.f
+        return obj
+
     def __repr__(self):
         if self.n == "":
             return f"Prefix [Nameless]: {self.f}"
@@ -250,20 +281,6 @@ class Prefix(object):
 
     def __str__(self):
         return self.s
-
-    def __init__(self, symbol=None):
-        if self._data_by_symbol is None:
-            Prefix._data_by_symbol = load_data_file(Prefix._DATA_FILE)
-
-        self.f = None
-        self.n = None
-        self.s = symbol
-
-        if self.s is None:
-            return
-
-        self.f = self._data_by_symbol[symbol]["factor"]
-        self.n = self._data_by_symbol[symbol]["name"]
 
     def __mul__(self, other):
         if isinstance(other, Prefix):
@@ -295,6 +312,9 @@ class Prefix(object):
         else:
             return other / self.f
 
+    def copy(self):
+        return self.__copy__()
+
 class Units(object):
     re_den_group = re.compile(r"/\([a-zA-Z]+(?:\^[+-]?\d+)?(?:\.+[a-zA-Z]+(?:\^[+-]?\d+)?)*\)")
     re_single_den = re.compile(r"/(?P<u>[a-zA-Z]+)(?P<e>\^[+-]?\d+)?")
@@ -316,7 +336,6 @@ class Units(object):
         else: # return empty if none
             obj = cls()
         return obj
-
 
     @classmethod
     def from_string(cls, ustring, **kwargs):
@@ -393,6 +412,9 @@ class Units(object):
         """
         self.s = dict() if s is None else s
         self.context = context
+
+    def __copy__(self):
+        return type(self)(s=self.s.copy(), context=self.context)
 
     def __repr__(self):
         p1 = sorted([f"{s}^{e}" if e > 1 else s for s, e in self.s.items() if e > 0])
@@ -528,6 +550,9 @@ class Units(object):
 
         return Units(s=sbase, context=self.context)
 
+    def copy(self):
+        return self.__copy__()
+
     def simplify(self, context=None):
         """
         Simplify the units as much as possible.  Uses the instances context
@@ -567,9 +592,6 @@ class Units(object):
 
         # if we are here, we failed to simplify
         logger.warning(f"Unable to simplify {self} in context: {self.context}")
-
-    def copy(self):
-        return Units(s=self.s.copy(), context=self.context)
 
     @property
     def n(self):
@@ -623,7 +645,10 @@ class DependantPhysicalQuantity(object):
         self.num = np.polynomial.Polynomial(num if num is not None else [1])
         self.den = np.polynomial.Polynomial(den if den is not None else [1])
 
-        self._var0 = PhysicalQuantity(value=var0, units=var_units)
+        if isinstance(var0, PhysicalQuantity):
+            self._var0 = var0
+        else:
+            self._var0 = PhysicalQuantity(value=var0, units=var_units)
 
     def __repr__(self):
         try:
@@ -634,7 +659,14 @@ class DependantPhysicalQuantity(object):
         return f"[DPQ({v0}):({self.num})/({self.den}):({self.u})]"
 
     def __mul__(self, other):
-        pass
+        if isinstance(other, DependantPhysicalQuantity):
+            return type(self)(num=self.num*other.num, 
+                              den=self.den*other.den,
+                              units=self.u * other.u,
+                              var0=self._var0.v, var_units=self._var0.u.copy())
+        else: #try scalar multiply
+            return type(self)(num=self.num.copy()*other, den=self.den.copy(),
+                              units=self.u.copy(), var0=self._var0.copy())
 
     def __rmul__(self, other):
         pass
@@ -724,6 +756,8 @@ class DependantPhysicalQuantity(object):
 
         vn = self.num(var)
         vd = self.den(var)
+
+        print(f"###################\n{vn}\n{vd}\n##############")
 
         return vn/vd
 
