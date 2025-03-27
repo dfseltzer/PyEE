@@ -8,7 +8,27 @@ class TestCase_create(unittest.TestCase):
         cls.DPQ = DependantPhysicalQuantity
 
     def test_create(self):
-        z1 = self.DPQ("")
+        # just make sure these do not error out
+        self.DPQ()
+        self.DPQ(num=[1,2,3], den=[4,5,6])
+        self.DPQ(den=[4,5,6], var0=2)
+        self.DPQ(var0=2, var_units="Hz")
+        self.DPQ(num=[1,2,3], den=[4,5,6], var0=2, var_units="Hz")
+        
+    def test_call_var0(self):
+        z1 = self.DPQ(num=[1, 1], den=[1], var_units="kg")
+        self.assertRaises(ValueError, lambda: z1())
+        z1.var0 = 5
+        v1 = z1()
+        self.assertEquals(v1, 6)
+
+        v2 = z1(7)
+        self.assertEquals(v2, 8)
+
+        v3 = z1([2, 3])
+        self.assertListEqual(list(v3), [3, 4])
+
+        
 
     def test_multiply_instance(self):
         pass
