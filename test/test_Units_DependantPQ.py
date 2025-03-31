@@ -31,7 +31,8 @@ class TestCase_create(unittest.TestCase):
     def test_call_array(self):
         z1 = self.DPQ(num=[1, 1], den=[1], var_units="kg")
         v3 = z1([2, 3])
-        self.assertListEqual(list(v3), [3, 4])        
+        
+        self.assertListEqual(list(v3.value), [3, 4])        
 
     def test_multiply_instance(self):
         z1 = self.DPQ(num=[1, 1], den=[1], var_units="kg")

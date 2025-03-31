@@ -6,6 +6,7 @@ import numpy as np
 
 import re
 import logging
+import copy
 
 logger = logging.getLogger(__name__)
 
@@ -16,22 +17,27 @@ from ..math.polynomials import polyeval
 from ..math.polynomials import polymul
 
 class PhysicalQuantity(object):
+    __DEBUG = True
+
     def __init__(self, value=None, units=None):
+        super().__init__()
+
+        if self.__DEBUG: logger.error(f"Creating new from value={value}, units={units}")
+
         if value is not None:
             self.p = Prefix.from_number(value)
-            self.v = value/self.p
+            self.v = 1/self.p * value # avoid python calling __rdiv__ on each element for lists
         else:
-            self.p = Prefix()
+            self.p = None
             self.v = None
+
+        if self.__DEBUG: logger.error(f".... p={self.p} ({type(self.p)})")
+        if self.__DEBUG: logger.error(f".... v={self.v} ({type(self.v)})")
 
         self.u = Units.from_any(units)
 
     def __copy__(self):
-        obj = type(self)()
-        obj.p = self.p.copy()
-        obj.v = self.v
-        obj.u = self.u.copy()
-        return obj
+        return copy.deepcopy(self)
 
     def __repr__(self):
         return f"{self.v:7.3f}{self.p} [{self.u}]"
@@ -136,7 +142,7 @@ class PhysicalQuantity(object):
         """
         :return: value as a scalar
         """
-        return self.v*self.p
+        return self.v*self.p.f
 
     def as_base(self, **kwargs):
         """
@@ -321,7 +327,7 @@ class DependantPhysicalQuantity(object):
 
         vn = polyeval(self.num, var)
         vd = polyeval(self.den, var)
-        
+
         return PhysicalQuantity(value=vn/vd, units=self.u.copy())
 
 class Impedance(object):

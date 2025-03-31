@@ -22,6 +22,7 @@ import numpy as np
 
 import re
 import logging
+import copy
 
 from ..utilities import load_data_file
 
@@ -47,14 +48,17 @@ def load_unit_context(context):
 class Prefix(object):
     """
     SI prefixes.  Stored as three components...
-    n = name   (i.e. kilo)
-    f = factor (i.e. 1000)
-    s = symbol (i.e. k)
+    n = name   (i.e. kilo) (as list)
+    f = factor (i.e. 1000) (as numpy array)
+    s = symbol (i.e. k)    (as list)
 
     Call directly with a symbol, or use the helper class methods from_name or from_number
 
     Supports multiplication and division.  If used against another Prefix instance, returns a
     new Prefix instance.  Otherwise acts like a number and attempts the operation.
+
+
+    To generate an array, use the from_number helper.
     """
     _DATA_FILE = "SI_prefixes"
     _data_by_symbol = None
@@ -62,13 +66,18 @@ class Prefix(object):
     _data_by_value = None
     _data_value_scale = None
 
+    __DEBUG = False
+
     @classmethod
     def from_name(cls, pstring):
         """
         Searches for a prefix matching the given symbol.  Does not check for multiple matches... as
         this should never happen.  If no match is made, raises key error.
-        :param pstring:
-        :return:
+
+        Does not support array arguments.
+
+        :param pstring: prefix string
+        :return: prefix object if possible.
         """
         pobj = Prefix() # forces load of initial dict... dumb but simple
 
@@ -77,9 +86,9 @@ class Prefix(object):
 
         pdata = cls._data_by_name[pstring]
 
-        pobj.n = pstring
-        pobj.f = pdata["factor"]
-        pobj.s = pdata["symbol"]
+        pobj.n = [pstring]
+        pobj.f = [pdata["factor"]]
+        pobj.s = [pdata["symbol"]]
 
         return pobj
 
@@ -92,24 +101,37 @@ class Prefix(object):
         :param pnum: number to find a prefix for
         :return: new prefix object
         """
+        #TODO array-itize this... some messy lists mixed with arrays below.
+
         pobj = Prefix()  # forces load of initial dict... dumb but simple
         if cls._data_by_value is None:
             cls._data_by_value = {d["factor"]: {"symbol":s, "name":d["name"]} for s, d in cls._data_by_symbol.items()}
             cls._data_value_scale = sorted(cls._data_by_value.keys())
 
+        #make an array so its always consistent...
+        try:
+            nvals = len(num)
+        except TypeError:
+            num = np.array([num])
+            nvals = 1 
         pnum = abs(num)
 
-        print(f">>>>>>\n>>>>>>>\n>>>>>\n{pnum}")
-
         # if greater than 1, we want the next smallest factor.
-        diffs = [1 if (pnum - v) >= 0 else 0 for v in cls._data_value_scale]
+        #scalar was: diffs = [1 if (pnum - v) >= 0 else 0 for v in cls._data_value_scale]
+        diffs = np.array([1*((pnum - v) >= 0) for v in cls._data_value_scale])
 
-        factornum = cls._data_value_scale[max(diffs.index(0)-1,0)]
+        factornum = [cls._data_value_scale[max(np.max(diffs[:,idx].nonzero()),0)] for idx in range(nvals)]
 
-        pobj.s = cls._data_by_value[factornum]["symbol"]
-        pobj.n = cls._data_by_value[factornum]["name"]
+        if len(factornum) == 1:
+            factornum = factornum[0]
+            pobj.s = cls._data_by_value[factornum]["symbol"]
+            pobj.n = cls._data_by_value[factornum]["name"]
+        else:
+            factornum = np.array(factornum)
+            pobj.s = [cls._data_by_value[fn]["symbol"] for fn in factornum]
+            pobj.n = [cls._data_by_value[fn]["name"] for fn in factornum]
+
         pobj.f = factornum
-
         return pobj
 
     def __init__(self, symbol=""):
@@ -118,20 +140,16 @@ class Prefix(object):
 
         self.f = 1
         self.n = ""
-        self.s = symbol
+        self.s = [symbol]
 
         if self.s is None:
             return
 
-        self.f = self._data_by_symbol[symbol]["factor"]
-        self.n = self._data_by_symbol[symbol]["name"]
+        self.f = [self._data_by_symbol[symbol]["factor"]]
+        self.n = [self._data_by_symbol[symbol]["name"]]
 
     def __copy__(self):
-        obj = type(self)()
-        obj.s = self.s
-        obj.n = self.n
-        obj.f = self.f
-        return obj
+        return copy.deepcopy(self)
 
     def __repr__(self):
         if self.n == "":
@@ -140,7 +158,15 @@ class Prefix(object):
             return f"Prefix [{self.s}] {self.n}: {self.f}"
 
     def __str__(self):
-        return self.s
+        try:
+            nvals = len(self.f)
+        except TypeError:
+            return self.s
+        
+        if nvals < 5:
+            return "["+", ".join([f"{v}" for v in self.f])+"]"
+        else:
+            return f"[{self.f[0]},... + {nvals-1} others]"
 
     def __mul__(self, other):
         if isinstance(other, Prefix):
@@ -169,8 +195,10 @@ class Prefix(object):
     def __rtruediv__(self, other):
         if isinstance(other, Prefix):
             return Prefix.from_number(other.f / self.f)
-        else:
-            return other / self.f
+        
+        if self.__DEBUG: logger.error(f"rdiv for {self} and {other}")
+
+        return other / self.f
 
     def copy(self):
         return self.__copy__()
@@ -286,7 +314,7 @@ class Units(object):
         self.context = context
 
     def __copy__(self):
-        return type(self)(s=self.s.copy(), context=self.context)
+        return copy.deepcopy(self)
 
     def __repr__(self):
         p1 = sorted([f"{s}^{e}" if e > 1 else s for s, e in self.s.items() if e > 0])
