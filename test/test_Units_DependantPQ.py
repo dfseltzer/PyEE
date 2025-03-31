@@ -1,9 +1,12 @@
 import unittest
 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 class TestCase_create(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        import logging
         from pyee.types.pq import DependantPhysicalQuantity
         cls.DPQ = DependantPhysicalQuantity
 
@@ -35,11 +38,12 @@ class TestCase_create(unittest.TestCase):
         self.assertListEqual(list(v3.value), [3, 4])        
 
     def test_multiply_instance(self):
-        z1 = self.DPQ(num=[1, 1], den=[1], var_units="kg")
-        z2 = self.DPQ(num=[2], den=[1], var_units="1/s")
+        z1 = self.DPQ(num=[1, 1], den=[1], units="kg")
+        z2 = self.DPQ(num=[2], den=[1], units="1/s")
+        
         z3 = z1*z2
 
-        self.assertEquals(z3(1), 4)
+        self.assertEquals(z3(1).value, 4)
         self.assertEquals(z3.u, "kg/s")
 
     def test_multiply_scalar(self):
@@ -54,8 +58,4 @@ class TestCase_create(unittest.TestCase):
 
 if __name__ == '__main__':
     import logging
-    logging.getLogger().setLevel(logging.INFO)
-    from pyee.types.units import logger
-    logger.setLevel(logging.INFO)
-
     unittest.main()

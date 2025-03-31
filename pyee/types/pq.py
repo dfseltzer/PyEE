@@ -17,12 +17,12 @@ from ..math.polynomials import polyeval
 from ..math.polynomials import polymul
 
 class PhysicalQuantity(object):
-    __DEBUG = True
+    __DEBUG = False
 
     def __init__(self, value=None, units=None):
         super().__init__()
 
-        if self.__DEBUG: logger.error(f"Creating new from value={value}, units={units}")
+        if self.__DEBUG: logger.error(f"Creating PQ from value={value}, units={units}")
 
         if value is not None:
             self.p = Prefix.from_number(value)
@@ -191,8 +191,9 @@ class DependantPhysicalQuantity(object):
 
     When two dependant physical quanitites are acted on by a math operator, the left argument
     default value is retained.
-
     """
+    __DEBUG = False
+
     def __init__(self, num=None, den=None, units=None, var0=None, var_units=""):
         """
         :param num: numerator array
@@ -222,6 +223,7 @@ class DependantPhysicalQuantity(object):
 
     def __mul__(self, other):
         if isinstance(other, DependantPhysicalQuantity):
+            if self.__DEBUG: logger.error(f"MULT: as DPQs: {self} x {other}")
             return type(self)(num=polymul(self.num, other.num), 
                               den=polymul(self.den, other.den),
                               units=self.u * other.u,
