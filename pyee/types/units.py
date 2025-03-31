@@ -99,6 +99,8 @@ class Prefix(object):
 
         pnum = abs(num)
 
+        print(f">>>>>>\n>>>>>>>\n>>>>>\n{pnum}")
+
         # if greater than 1, we want the next smallest factor.
         diffs = [1 if (pnum - v) >= 0 else 0 for v in cls._data_value_scale]
 

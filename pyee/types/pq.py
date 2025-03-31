@@ -113,9 +113,17 @@ class PhysicalQuantity(object):
         return type(self)(value=nv, units=nu)
 
     def __eq__(self, other):
-        if self.u != other.u:
-            return False
-        elif self.v*self.p != other.v*other.p:
+        try:
+            if self.u != other.u:
+                return False
+        except AttributeError as e:
+            if self.u == "1":
+                logger.warning(f"Our units are '1' - trying scalar equals.  Using .value is prefered.")
+                return self.value == other                
+            logger.error(f"No units on other likely? Use .value to check scalar equality")
+            raise TypeError(f"Unable to check equlity - no units on other? Acting on [{self}] == [{other}]")
+
+        if self.v*self.p != other.v*other.p:
             return False
         else:
             return True
@@ -313,7 +321,7 @@ class DependantPhysicalQuantity(object):
 
         vn = polyeval(self.num, var)
         vd = polyeval(self.den, var)
-
+        
         return PhysicalQuantity(value=vn/vd, units=self.u.copy())
 
 class Impedance(object):

@@ -16,15 +16,20 @@ class TestCase_create(unittest.TestCase):
         self.DPQ(num=[1,2,3], den=[4,5,6], var0=2, var_units="Hz")
         
     def test_call_var0(self):
+        # no arguments, so calls with default variable
         z1 = self.DPQ(num=[1, 1], den=[1], var_units="kg")
         self.assertRaises(ValueError, lambda: z1())
         z1.var0 = 5
         v1 = z1()
         self.assertEquals(v1, 6)
 
+    def test_call_scalar(self):
+        z1 = self.DPQ(num=[1, 1], den=[1], var_units="kg")
         v2 = z1(7)
         self.assertEquals(v2, 8)
 
+    def test_call_array(self):
+        z1 = self.DPQ(num=[1, 1], den=[1], var_units="kg")
         v3 = z1([2, 3])
         self.assertListEqual(list(v3), [3, 4])        
 
