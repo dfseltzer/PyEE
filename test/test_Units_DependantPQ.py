@@ -37,10 +37,10 @@ class TestCase_create(unittest.TestCase):
         self.assertEquals(z3.u, "kg/s")
 
     def test_multiply_scalar(self):
-        z1 = self.DPQ(num=[1, 1], den=[1], var_units="kg")
+        z1 = self.DPQ(num=[1, 1], den=[1], units="kg", var_units="s")
         z2 = z1*5
 
-        self.assertEquals(z2(1), 10)
+        self.assertEquals(z2(1).value, 10)
         self.assertEquals(z2.u, "kg")
 
     def test_subtract(self):

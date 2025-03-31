@@ -7,8 +7,13 @@ import numpy as np
 import re
 import logging
 
+logger = logging.getLogger(__name__)
+
 from ..types.units import Units
 from ..types.units import Prefix
+
+from ..math.polynomials import polyeval
+from ..math.polynomials import polymul
 
 class PhysicalQuantity(object):
     def __init__(self, value=None, units=None):
@@ -18,7 +23,6 @@ class PhysicalQuantity(object):
         else:
             self.p = Prefix()
             self.v = None
-
 
         self.u = Units.from_any(units)
 
@@ -166,7 +170,7 @@ class DependantPhysicalQuantity(object):
            ----   -----------------
            d[s]   [d0, d1, d2, ...]
 
-    Stored as numpy polynomials internally
+    Stored as numpy arrays internally
 
     A default value (var0) can be provided - this is used to calculate the quantity 
     value if no other points are given.
@@ -186,8 +190,8 @@ class DependantPhysicalQuantity(object):
         super().__init__()
         self.u = Units.from_any(units)
 
-        self.num = np.polynomial.Polynomial(num if num is not None else [1])
-        self.den = np.polynomial.Polynomial(den if den is not None else [1])
+        self.num = np.array(num if num is not None else [1])
+        self.den = np.array(den if den is not None else [1])
 
         if isinstance(var0, PhysicalQuantity):
             self._var0 = var0
@@ -204,8 +208,8 @@ class DependantPhysicalQuantity(object):
 
     def __mul__(self, other):
         if isinstance(other, DependantPhysicalQuantity):
-            return type(self)(num=self.num*other.num, 
-                              den=self.den*other.den,
+            return type(self)(num=polymul(self.num, other.num), 
+                              den=polymul(self.den, other.den),
                               units=self.u * other.u,
                               var0=self._var0.v, var_units=self._var0.u.copy())
         else: #try scalar multiply
@@ -213,7 +217,11 @@ class DependantPhysicalQuantity(object):
                               units=self.u.copy(), var0=self._var0.copy())
 
     def __rmul__(self, other):
-        pass
+        """
+        same as __mul__
+        """
+        #TODO fill in to avoid another forwarded call
+        return self*other
 
     def __sub__(self, other):
         try:
@@ -292,18 +300,21 @@ class DependantPhysicalQuantity(object):
         self._var0.update(val)
 
     def __call__(self, var=None):
+        """
+        Evaluate dependant pysical quantity at given point(s)
+
+        Returns a PhysicalQuantity (non dependant)
+        """
         #TODO let this be called with physical quantities as input
         #TODO update to support input arrays
 
         if var is None:
             var = self.var0.value
 
-        vn = self.num(var)
-        vd = self.den(var)
+        vn = polyeval(self.num, var)
+        vd = polyeval(self.den, var)
 
-        print(f"###################\n{vn}\n{vd}\n##############")
-
-        return vn/vd
+        return PhysicalQuantity(value=vn/vd, units=self.u.copy())
 
 class Impedance(object):
     """

@@ -4,7 +4,7 @@ class TestCase_create(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import logging
-        from pyee.types.units import PhysicalQuantity
+        from pyee.types.pq import PhysicalQuantity
         cls.PQ = PhysicalQuantity
 
     def test_create(self):
