@@ -12,14 +12,29 @@ class TestCase_from_string(unittest.TestCase):
         u = self.Units.from_string("1")
         self.assertDictEqual(u.s, {})
 
+        u = self.Units.from_string("1/1")
+        self.assertDictEqual(u.s, {})
+
+        u = self.Units.from_string("(1)/1")
+        self.assertDictEqual(u.s, {})
+
+        u = self.Units.from_string("1/(1)")
+        self.assertDictEqual(u.s, {})
+
+        u = self.Units.from_string("(1)/(1)")
+        self.assertDictEqual(u.s, {})
+
         u = self.Units.from_string("")
         self.assertDictEqual(u.s, {})
 
         u = self.Units({})
         self.assertDictEqual(u.s, {})
 
-    def test_from_string_simple(self):
-        # no denominator
+        u = self.Units.from_string("s/s")
+        self.assertDictEqual(u.s, {})
+
+
+    def test_from_string_simple_no_den(self):
         u = self.Units.from_string("m.s")
         self.assertDictEqual(u.s, {"m": 1, "s": 1})
 
@@ -32,6 +47,21 @@ class TestCase_from_string(unittest.TestCase):
         u = self.Units.from_string("m.s.kg^2")
         self.assertDictEqual(u.s, {"m": 1, "s": 1, "kg":2})
 
+    def test_from_string_simple_single_den(self):
+        u = self.Units.from_string("s/1")
+        self.assertDictEqual(u.s, {"s": 1})
+
+        u = self.Units.from_string("s/(1)")
+        self.assertDictEqual(u.s, {"s": 1})
+
+    def test_from_string_simple_no_num(self):
+        u = self.Units.from_string("1/s")
+        self.assertDictEqual(u.s, {"s": -1})
+
+    def test_from_string_simple_no_num_paren(self):
+        u = self.Units.from_string("(1)/s")
+        self.assertDictEqual(u.s, {"s": -1})
+
     def test_from_string_no_parens(self):
         # no parentheses in denominator
         u = self.Units.from_string("m/s/kg^2")
@@ -43,6 +73,19 @@ class TestCase_from_string(unittest.TestCase):
 
         u = self.Units.from_string("m/(s)/(kg^2)")
         self.assertDictEqual(u.s, {"m": 1, "s": -1, "kg": -2})
+
+    def test_from_string_den_leading_dot_paren(self):
+        u = self.Units.from_string("kg/(.s)")
+        self.assertDictEqual(u.s, {"kg": 1, "s": -1})
+        
+    def test_from_string_den_leading_dot(self):    
+        u = self.Units.from_string("kg/.s")
+        self.assertDictEqual(u.s, {"kg": 1, "s": -1})
+    
+    def test_from_string_misc(self):
+        u = self.Units.from_string("kg/(1.s)")
+        self.assertDictEqual(u.s, {"kg": 1, "s": -1})
+
 
 class TestCase_Units_maths(unittest.TestCase):
     @classmethod

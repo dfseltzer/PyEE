@@ -316,8 +316,9 @@ class Prefix(object):
         return self.__copy__()
 
 class Units(object):
-    re_den_group = re.compile(r"/\([a-zA-Z]+(?:\^[+-]?\d+)?(?:\.+[a-zA-Z]+(?:\^[+-]?\d+)?)*\)")
-    re_single_den = re.compile(r"/(?P<u>[a-zA-Z]+)(?P<e>\^[+-]?\d+)?")
+    #re_den_group = re.compile(r"/\([a-zA-Z]+(?:\^[+-]?\d+)?(?:\.+[a-zA-Z]+(?:\^[+-]?\d+)?)*\)")
+    re_den_group = re.compile(r"/\(([a-zA-Z]+(?:\^[+-]?\d+)?|1)?(?:\.+[a-zA-Z]+(?:\^[+-]?\d+)?)*\)")
+    re_single_den = re.compile(r"/\.*(?P<u>[a-zA-Z]+)(?P<e>\^[+-]?\d+)?\.*")
     re_non_exp_sets = re.compile(r"(?:[a-zA-Z]+(?=\.))|(?:[a-zA-Z]+$)")
 
     CONTEXTS = dict()
@@ -348,17 +349,23 @@ class Units(object):
         :raises ValueError: if ustring cannot be split cleanly
         """
 
+        # set True to print each step to error log... regex is anoying..
+        __DEBUG = False
+
         if ustring == "" or ustring == "1":
             return cls({}, **kwargs)
 
-        #logger.debug(f"Converting {ustring}")
         # convert all /(u^e.u^e) to /u^e/u^e
         def splitd(s):
             d_subs = s.group(0).replace("(","").replace(")","").replace(".","/")
             return d_subs
 
         u_splitd = cls.re_den_group.sub(splitd, ustring)
-        #logger.debug(f"Step1:     {u_splitd}")
+        if __DEBUG: logger.error(f"u_splitd: {u_splitd}")
+
+        # remove all /1 instances, remove all double //
+        u_nosingles = u_splitd.replace("/1","").replace("//","/")
+        if __DEBUG: logger.error(f"u_nosingles: {u_nosingles}")
 
         # flip all instances of "/u^e" to "u^-e"
         def flipe(s):
@@ -366,21 +373,26 @@ class Units(object):
             e = "-1" if e_neg is None else str(-int(e_neg[1:]))
             return "."+s.group("u")+"^"+e+"."
 
-        u_flipped = cls.re_single_den.sub(flipe, u_splitd)
-        #logger.debug(f"Step2:     {u_flipped}")
+        u_flipped = cls.re_single_den.sub(flipe, u_nosingles)
+        if __DEBUG: logger.error(f"u_flipped: {u_flipped}")
 
         # clean extra dots
-        u_strip = re.sub(r"\.+", ".", u_flipped)
-        #logger.debug(f"Step3:     {u_strip}")
+        u_strip = re.sub(r"\.+", ".", u_flipped).strip(".")
+
+        if __DEBUG: logger.error(f"u_strip: {u_strip}")
 
         # give all sets an exponent
         def addone(s):
             return s.group(0)+"^1"
 
         u_padded = cls.re_non_exp_sets.sub(addone, u_strip).strip(".")
-        #logger.debug(f"Step4:     {u_padded}")
+        if __DEBUG: logger.error(f"u_padded: {u_padded}")
 
-        u_parts = [ue.split("^") for ue in u_padded.split(".")]
+
+        # while splitting, remove all single '1' sets - caused by "1/..." sets
+        u_parts = [ue.split("^") for ue in u_padded.split(".") if ue not in ('1', '(1)')]
+        if __DEBUG: logger.error(f"u_parts: {u_parts}")
+
         s_full = dict()
         for ue0, ue1 in u_parts:
             s_full[ue0] = s_full.get(ue0,0) + int(ue1)
