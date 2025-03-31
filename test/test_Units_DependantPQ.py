@@ -4,7 +4,7 @@ class TestCase_create(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import logging
-        from pyee.units.types import DependantPhysicalQuantity
+        from pyee.types.pq import DependantPhysicalQuantity
         cls.DPQ = DependantPhysicalQuantity
 
     def test_create(self):
@@ -40,8 +40,8 @@ class TestCase_create(unittest.TestCase):
         z1 = self.DPQ(num=[1, 1], den=[1], var_units="kg")
         z2 = z1*5
 
-        self.assertEquals(z1(1), 10)
-        self.assertEquals(z1.u, "kg")
+        self.assertEquals(z2(1), 10)
+        self.assertEquals(z2.u, "kg")
 
     def test_subtract(self):
         pass
@@ -49,7 +49,7 @@ class TestCase_create(unittest.TestCase):
 if __name__ == '__main__':
     import logging
     logging.getLogger().setLevel(logging.INFO)
-    from pyee.units.types import logger
+    from pyee.types.units import logger
     logger.setLevel(logging.INFO)
 
     unittest.main()

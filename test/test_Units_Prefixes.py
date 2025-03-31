@@ -4,7 +4,7 @@ class TestCase_from_string(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import logging
-        from pyee.units.types import Prefix
+        from pyee.types.units import Prefix
         cls.Prefix = Prefix
 
     def test_from_string(self):
@@ -45,14 +45,14 @@ class TestCase_from_string(unittest.TestCase):
 class TestCase_from_number(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        from pyee.units.types import Prefix
+        from pyee.types.units import Prefix
         cls.Prefix = Prefix
 
 
 if __name__ == '__main__':
     import logging
     logging.getLogger().setLevel(logging.INFO)
-    from pyee.units.types import logger
+    from pyee.types.units import logger
     logger.setLevel(logging.INFO)
 
     unittest.main()

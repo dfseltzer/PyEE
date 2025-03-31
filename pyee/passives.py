@@ -7,8 +7,8 @@ import logging
 logger = logging.getLogger(__name__)
 
 from abc import ABC, abstractmethod
-from .units import PhysicalQuantity
-from .units import Impedance
+from .types import PhysicalQuantity
+from .types import Impedance
 
 class PassiveComponent(ABC, PhysicalQuantity):
     def __init__(self, *args, **kwargs):

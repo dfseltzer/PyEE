@@ -4,7 +4,7 @@ class TestCase_from_string(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import logging
-        from pyee.units.types import Units
+        from pyee.types.units import Units
 
         cls.Units = Units
 
@@ -91,7 +91,7 @@ class TestCase_Units_maths(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import logging
-        from pyee.units.types import Units
+        from pyee.types.units import Units
         cls.Units = Units
 
     def test_equals(self):
@@ -110,7 +110,7 @@ class TestCase_Units_maths(unittest.TestCase):
 if __name__ == '__main__':
     import logging
     logging.getLogger().setLevel(logging.INFO)
-    from pyee.units.types import logger
+    from pyee.types.units import logger
     logger.setLevel(logging.INFO)
 
     unittest.main()
