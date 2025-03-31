@@ -15,6 +15,7 @@ from ..types.units import Prefix
 
 from ..math.polynomials import polyeval
 from ..math.polynomials import polymul
+from ..math.polynomials import polyadd
 
 class PhysicalQuantity(object):
     __DEBUG = False
@@ -170,7 +171,6 @@ class PhysicalQuantity(object):
         self.p = Prefix.from_number(val)
         self.v = val / self.p
 
-
 class DependantPhysicalQuantity(object):
     """
     Physical quantity with some dependence - impedance for example.
@@ -273,7 +273,17 @@ class DependantPhysicalQuantity(object):
             logger.error(f"Units not compatible for addition: {self.u} and {other.u}")
             raise e
 
-        pass
+        if self.__DEBUG: logger.error(f"ADDS: as DPQs: {self} + {other}")
+
+        # find common denom
+        den = polymul(self.den, other.den)
+        num_a = polymul(self.num, other.den) 
+        num_b = polymul(self.den, other.num) 
+        num = polyadd(num_a, num_b)
+
+        return type(self)(num=num, den=den,
+                          units=self.u.copy(),
+                          var0=self._var0.v, var_units=self._var0.u.copy())
 
     def __radd__(self, other):
         try:
@@ -285,7 +295,7 @@ class DependantPhysicalQuantity(object):
             logger.error(f"Units not compatible for addition: {other.u} and {self.u}")
             raise e
 
-        pass
+        return self + other
 
     def __div__(self, other):
         return self.__truediv__(other)
@@ -294,10 +304,26 @@ class DependantPhysicalQuantity(object):
         return self.__rtruediv__(other)
 
     def __truediv__(self, other):
-        pass
+        if isinstance(other, DependantPhysicalQuantity):
+            if self.__DEBUG: logger.error(f"DIVS: as DPQs: {self} / {other}")
+            return type(self)(num=polymul(self.num, other.den), 
+                              den=polymul(self.den, other.num),
+                              units=self.u / other.u,
+                              var0=self._var0.v, var_units=self._var0.u.copy())
+        else: #try scalar multiply
+            return type(self)(num=self.num.copy()/other, den=self.den.copy(),
+                              units=self.u.copy(), var0=self._var0.copy())
 
     def __rtruediv__(self, other):
-        pass
+        if isinstance(other, DependantPhysicalQuantity):
+            if self.__DEBUG: logger.error(f"RDIV: as DPQs: {other} / {self}")
+            return type(self)(num=polymul(self.den, other.num), 
+                              den=polymul(self.num, other.den),
+                              units=other.u / self.u,
+                              var0=self._var0.v, var_units=self._var0.u.copy())
+        else: #try scalar div
+            return type(self)(num=self.den.copy()*other, den=self.num.copy(),
+                              units=1/self.u.copy(), var0=self._var0.copy()) 
 
     def __eq__(self, other):
         pass
@@ -331,35 +357,3 @@ class DependantPhysicalQuantity(object):
         vd = polyeval(self.den, var)
 
         return PhysicalQuantity(value=vn/vd, units=self.u.copy())
-
-class Impedance(object):
-    """
-    Represents an impedance as a numerator and denominator polynomial in 's'
-    """
-    #TODO remove this, replace with EE specific wrapper for dependant PQ class
-    def __init__(self, value, frequency=None, frequency_units="Hz", *args, **kwargs):
-        """
-        Value must be supplied as a tuple (num, den), where num and den
-        are arrays of coefficients for increasing powers of s, where the array index is the power of s.
-
-        Units are always "V/A"
-
-        :param value: (num=[a0, a1, a2], den=[b0, b1, b2])
-        :param frequency: default frequency for evaluation. defaults to 1kHz
-        :param frequency_units: defaults to "Hz". other values are "rad/s"
-        """
-        super().__init__()
-
-        self.u = Units("V/A")
-
-        if frequency_units == "Hz":
-            self.frequency_units = frequency_units
-            self.frequency = frequency if frequency is not None else 1000
-        elif frequency_units == "rad/s":
-            self.frequency_units = frequency_units
-            self.frequency = 2000*np.pi
-        else:
-            raise ValueError(f"Unknown frequency_units: {frequency_units}. Known values are 'Hz' or 'rad/s'")
-
-        self.n = value[0]
-        self.d = value[1]

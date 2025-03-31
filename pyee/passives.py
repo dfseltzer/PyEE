@@ -7,8 +7,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 from abc import ABC, abstractmethod
-from .types import PhysicalQuantity
-from .types import Impedance
+from .types.pq import PhysicalQuantity
+from .types.impedance import Impedance
+
+FREQUENCY_UNITS = "Hz"
 
 class PassiveComponent(ABC, PhysicalQuantity):
     def __init__(self, *args, **kwargs):
@@ -55,7 +57,7 @@ class Resistor(PassiveComponent):
 
     @property
     def Z(self):
-        return Impedance(([self.v*self.p],[1]))
+        return Impedance(num=[self.v*self.p],den=[1], frequency_units=FREQUENCY_UNITS)
 
 class Inductor(PassiveComponent):
     def __init__(self, value, **kwargs):
@@ -63,7 +65,7 @@ class Inductor(PassiveComponent):
 
     @property
     def Z(self):
-        return Impedance(([0, self.v * self.p],[1]))
+        return Impedance(num=[0, self.v * self.p], den=[1], frequency_units=FREQUENCY_UNITS)
 
 class Capacitor(PassiveComponent):
     def __init__(self, value, **kwargs):
@@ -71,6 +73,6 @@ class Capacitor(PassiveComponent):
 
     @property
     def Z(self):
-        return Impedance(([1],[0, self.v*self.p]))
+        return Impedance(num=[1],den=[0, self.v*self.p], frequency_units=FREQUENCY_UNITS)
 
 

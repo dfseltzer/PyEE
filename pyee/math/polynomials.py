@@ -2,7 +2,21 @@
 Polynomial helpers
 """
 
-import numpy
+import numpy as np
+
+def polyadd(c1, c2):
+    """
+    Addes two coefficient arrays.
+    """
+    if len(c1) < len(c2): # pad c1
+        eq_c1 = np.pad(c1, (0, len(c2)-len(c1)), mode='constant', constant_values=0)
+        eq_c2 = c2
+    else: # pad c2
+        eq_c1 = c1
+        eq_c2 = np.pad(c2, (0, len(c1)-len(c2)), mode='constant', constant_values=0)
+
+    return eq_c1 + eq_c2
+
 
 def polyeval(c, x):
     """
@@ -11,26 +25,26 @@ def polyeval(c, x):
     Array index into c is the exponent
     """
 
-    x_a = numpy.array(x)
-    partsum = numpy.zeros_like(x_a)
+    x_a = np.array(x)
+    partsum = np.zeros_like(x_a)
     for e, a in enumerate(c): # iter in case lots of values...
-        partsum = partsum + a * numpy.power(x_a,e) # equiv to +=? casting works better here...
+        partsum = partsum + a * np.power(x_a,e) # equiv to +=? casting works better here...
     rval = partsum.squeeze()
     return rval
 
 def polymul(c1, c2):
     """
-    Multiplies two coefficient arrays.  Like the old polymul from numpy, but skips all the new
+    Multiplies two coefficient arrays.  Like the old polymul from np, but skips all the new
     polynomial stuff
     """
 
-    fullmul = numpy.zeros((len(c1)+len(c2),1))
+    fullmul = np.zeros((len(c1)+len(c2),1))
     for e1, a in enumerate(c1):
         for e2, b in enumerate(c2):
             fullmul[e1+e2] += a*b
     
     sqmul = fullmul.squeeze()
-    nzi = numpy.max(sqmul.nonzero())+1
+    nzi = np.max(sqmul.nonzero())+1
     rval = sqmul[:nzi]
 
     return rval

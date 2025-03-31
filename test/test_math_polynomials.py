@@ -4,6 +4,7 @@ import numpy
 
 from pyee.math.polynomials import polyeval
 from pyee.math.polynomials import polymul
+from pyee.math.polynomials import polyadd
 
 class TestCase_polyeval(unittest.TestCase):
     @classmethod
@@ -51,6 +52,25 @@ class TestCase_polymul(unittest.TestCase):
         self.assertTrue((polymul(self.a1, self.a2)==numpy.array([0, 1, 2])).all())
         self.assertTrue((polymul(self.a2, self.a3)==numpy.array([0, 0, 0, 0.5, 1])).all())
         self.assertTrue((polymul(self.a3, self.a1)==numpy.array([0, 0, 0.5])).all())
+
+class TestCase_polyadd(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.p1 = [1] # 1
+        cls.p2 = [0,1,2] # x + 2*x^2
+        cls.p3 = [0,0,0.5] # 0.5*x^2
+
+        cls.a1 = numpy.array(cls.p1)
+        cls.a2 = numpy.array(cls.p2)
+        cls.a3 = numpy.array(cls.p3)
+    
+    def test_numpy_types(self):
+        a12 = polyadd(self.a1,self.a2)
+        a21 = polyadd(self.a2,self.a1)
+
+        self.assertTrue((a12==numpy.array([1, 1, 2])).all())
+        self.assertTrue((a21==numpy.array([1, 1, 2])).all())
+        
 
 if __name__ == '__main__':
     import logging
