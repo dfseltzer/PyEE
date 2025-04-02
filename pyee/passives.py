@@ -16,7 +16,6 @@ class PassiveComponent(ABC, PhysicalQuantity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    # add parallel operation
     def __or__(self, other):
         try:
             nv = self * other / (self + other)
@@ -41,6 +40,9 @@ class PassiveComponent(ABC, PhysicalQuantity):
             oZ = other.Z
             sZ = self.Z
             return oZ * sZ / (oZ + sZ)
+
+    #TODO add other math operation over-rides... try and use parent value, and if that fails convert to impedance
+    # and try to use that instead
 
     @property
     @abstractmethod

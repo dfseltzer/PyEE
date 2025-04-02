@@ -2,7 +2,8 @@
 import pyee
 from pyee.passives import Resistor, Inductor, Capacitor
 
-pyee.logger.setLevel(level=20) # info
+#pyee.logger.setLevel(level=20) # info
+pyee.logger.setLevel(level=50) # above error... basically off...
 
 R1 = Resistor(1000)
 R2 = Resistor(125)
@@ -32,3 +33,10 @@ Z1 = R3 | C1
 print(f"R3 ({R3}) | C1 ({C1}) = ({Z1})")
 
 Z1.simplify()
+print(f"Simplified Z1={Z1}")
+
+Z2 = R1 + C1
+print(f"Created Z2 = R1 + C1 = {Z2}")
+
+Z3 = Z2 - C1
+print(f"Z3 = Z2 - C1 = R1 = {Z3}")

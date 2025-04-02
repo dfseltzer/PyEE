@@ -17,7 +17,6 @@ def polyadd(c1, c2):
 
     return eq_c1 + eq_c2
 
-
 def polyeval(c, x):
     """
     Given a polynomial with ciefficients "c", evaluate at points "x"
@@ -48,3 +47,14 @@ def polymul(c1, c2):
     rval = sqmul[:nzi]
 
     return rval
+
+def polyprint(c, var="x", float_range=(1, 100)):
+    """
+    Prints the given coefficient array using variable var.
+
+    Prints values of magnitude  float_range[0] <= and < float_range[1] as floats, otherwise prints in scientific notation. 
+    """
+    cparts = [(f"{v:+.2f}" if float_range[0] <= abs(v) < float_range[1] else (f"{v:+.2E}" if v != 0 else "+0.0")) + f"{var}^{i}" for i, v in enumerate(c)]
+    cparts_spaced = [v[0]+ " " + v[1:] for v in cparts]
+    return " ".join(cparts_spaced).strip("+ ").replace(f"{var}^0","").replace(f"{var}^1",var)
+    

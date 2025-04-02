@@ -39,19 +39,28 @@ class Impedance(DependantPhysicalQuantity):
                          var_units=frequency_units)
         
     def simplify(self):
-        n = np.polynomial.Polynomial(self.num)
-        d = np.polynomial.Polynomial(self.den)
-
-        nz = n.roots()
-        dz = d.roots()
+        #TODO add argument to allow "almost equals"
+        nz = np.polynomial.polynomial.polyroots(self.num)
+        dz = np.polynomial.polynomial.polyroots(self.den)
         
+        simpset = 0
         common = set(nz) & set(dz) # wont work for repeated roots...
+        ncommon = len(common) > 0
+        while ncommon and simpset < 20:
+            simpset += 1
+            logger.info(f"Pass {simpset}: simplify {self} - removing common roots: {list(float(c) for c in common)}")
+            for r in common:
+                nz_idx = np.argwhere(nz==r)
+                nz = np.delete(nz, nz_idx[0])
 
-        logger.info(f"simplify {self} - removing common roots: {common}")
+                dz_idx = np.argwhere(dz==r)
+                dz = np.delete(dz, dz_idx[0])
+            common = set(nz) & set(dz) # wont work for repeated roots...
+            ncommon = len(common) > 0
+        else:
+            logger.info(f"Pass {simpset}: simplify {self} - no common roots")
 
-        for r in common:
-            nz
-        print(nz)
-        print(dz)
+        self.num = np.polynomial.polynomial.polyfromroots(nz)
+        self.den = np.polynomial.polynomial.polyfromroots(dz)
 
         

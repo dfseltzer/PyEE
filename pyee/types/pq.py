@@ -16,6 +16,7 @@ from ..types.units import Prefix
 from ..math.polynomials import polyeval
 from ..math.polynomials import polymul
 from ..math.polynomials import polyadd
+from ..math.polynomials import polyprint
 
 class PhysicalQuantity(object):
     __DEBUG = False
@@ -202,6 +203,8 @@ class DependantPhysicalQuantity(object):
         :param var0: default variable value - used when accessing value as scalars
         :param var_units: variable units
         """
+        #TODO add accuracy argument... limit float stuff so equality works
+
         super().__init__()
         self.u = Units.from_any(units)
 
@@ -217,9 +220,19 @@ class DependantPhysicalQuantity(object):
         try:
             v0 = self.var0
         except:
-            v0 = "NONE"
+            v0 = "*"
         
         return f"[DPQ({v0}):({self.num})/({self.den}):({self.u})]"
+
+    def __str__(self):
+        try:
+            v0 = str(self.var0.u)
+        except:
+            v0 = "*"
+        nps = polyprint(self.num)
+        dps = polyprint(self.den)
+        return f"f(x[{v0}])[{str(self.u)}]=({nps})/({dps})"
+
 
     def __mul__(self, other):
         if isinstance(other, DependantPhysicalQuantity):
