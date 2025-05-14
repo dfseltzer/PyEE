@@ -10,7 +10,19 @@ from abc import ABC, abstractmethod
 from .types.pq import PhysicalQuantity
 from .types.impedance import Impedance
 
+from .exceptions import UnitsMissmatchException
+
 FREQUENCY_UNITS = "Hz"
+ERROR_ON_Z_TRANSFORM = True
+
+def set_error_on_z_transform(val):
+    """
+    If True, will raise an error on 
+    operations that have non matching units.  If False, will
+    quietly convert input to impedances and return result.
+    """
+    global ERROR_ON_Z_TRANSFORM
+    ERROR_ON_Z_TRANSFORM = bool(val)
 
 class PassiveComponent(ABC, PhysicalQuantity):
     def __init__(self, *args, **kwargs):
@@ -53,9 +65,58 @@ class PassiveComponent(ABC, PhysicalQuantity):
         """
         pass
 
+    def __add__(self, value):
+        try:
+            return super().__add__(value)
+        except UnitsMissmatchException as e:
+            if ERROR_ON_Z_TRANSFORM:
+                raise e
+            logger.error(f"Ignoring units missmatch - trying to convert to impedances.")
+        # convert to Z, and return
+        thisZ = self.Z
+        otherZ = value.Z
+        return thisZ + otherZ
+    
+    def __radd__(self, value):
+        try:
+            return super().__radd__(value)
+        except UnitsMissmatchException as e:
+            if ERROR_ON_Z_TRANSFORM:
+                raise e
+            logger.error(f"Ignoring units missmatch - trying to convert to impedances.")
+        # convert to Z, and return
+        thisZ = self.Z
+        otherZ = value.Z
+        return otherZ + thisZ 
+
+    def __sub__(self, value):
+        try:
+            return super().__sub__(value)
+        except UnitsMissmatchException as e:
+            if ERROR_ON_Z_TRANSFORM:
+                raise e
+            logger.error(f"Ignoring units missmatch - trying to convert to impedances.")
+        # convert to Z, and return
+        thisZ = self.Z
+        otherZ = value.Z
+        return thisZ - otherZ
+    
+    def __rsub__(self, value):
+        try:
+            return super().__rsub__(value)
+        except UnitsMissmatchException as e:
+            if ERROR_ON_Z_TRANSFORM:
+                raise e
+            logger.error(f"Ignoring units missmatch - trying to convert to impedances.")
+        # convert to Z, and return
+        thisZ = self.Z
+        otherZ = value.Z
+        return otherZ - thisZ 
+
+
 class Resistor(PassiveComponent):
     def __init__(self, value, **kwargs):
-        super().__init__(value=value, units="Ohm")
+        super().__init__(value=value, units=kwargs.pop("units","Ohm"))
 
     @property
     def Z(self):
@@ -63,7 +124,7 @@ class Resistor(PassiveComponent):
 
 class Inductor(PassiveComponent):
     def __init__(self, value, **kwargs):
-        super().__init__(value=value, units="H")
+        super().__init__(value=value, units=kwargs.pop("units","H"))
 
     @property
     def Z(self):
@@ -71,7 +132,7 @@ class Inductor(PassiveComponent):
 
 class Capacitor(PassiveComponent):
     def __init__(self, value, **kwargs):
-        super().__init__(value=value, units="F")
+        super().__init__(value=value, units=kwargs.pop("units","F"))
 
     @property
     def Z(self):

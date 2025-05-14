@@ -10,6 +10,8 @@ import copy
 
 logger = logging.getLogger(__name__)
 
+from ..exceptions import UnitsMissmatchException
+
 from ..types.units import Units
 from ..types.units import Prefix
 
@@ -62,7 +64,7 @@ class PhysicalQuantity(object):
         except AttributeError as e:
             logger.error(f"Unable to find units for subtraction: {self} and {other}.  Exception was: {e}")
             raise e
-        except TypeError as e:
+        except UnitsMissmatchException as e:
             logger.error(f"Units not compatible for subtraction: {self.u} and {other.u}")
             raise e
 
@@ -74,7 +76,7 @@ class PhysicalQuantity(object):
         except AttributeError as e:
             logger.error(f"Unable to find units for operation: {other} and {self}.  Exception was: {e}")
             raise e
-        except TypeError as e:
+        except UnitsMissmatchException as e:
             logger.error(f"Units not compatible for subtraction: {other.u} and {self.u}")
             raise e
 
@@ -86,7 +88,7 @@ class PhysicalQuantity(object):
         except AttributeError as e:
             logger.error(f"Unable to find units for addition: {self} and {other}.  Exception was: {e}")
             raise e
-        except TypeError as e:
+        except UnitsMissmatchException as e:
             logger.error(f"Units not compatible for addition: {self.u} and {other.u}")
             raise e
 
@@ -98,7 +100,7 @@ class PhysicalQuantity(object):
         except AttributeError as e:
             logger.error(f"Unable to find units for addition: {other} and {self}.  Exception was: {e}")
             raise e
-        except TypeError as e:
+        except UnitsMissmatchException as e:
             logger.error(f"Units not compatible for addition: {other.u} and {self.u}")
             raise e
 
@@ -233,7 +235,6 @@ class DependantPhysicalQuantity(object):
         dps = polyprint(self.den)
         return f"f(x[{v0}])[{str(self.u)}]=({nps})/({dps})"
 
-
     def __mul__(self, other):
         if isinstance(other, DependantPhysicalQuantity):
             if self.__DEBUG: logger.error(f"MULT: as DPQs: {self} x {other}")
@@ -344,16 +345,6 @@ class DependantPhysicalQuantity(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    @property
-    def var0(self):
-        if self._var0.v is None:
-            raise ValueError("No initial value - was this ever set?")
-        return self._var0
-
-    @var0.setter
-    def var0(self, val):
-        self._var0.update(val)
-
     def __call__(self, var=None):
         """
         Evaluate dependant pysical quantity at given point(s)
@@ -370,3 +361,13 @@ class DependantPhysicalQuantity(object):
         vd = polyeval(self.den, var)
 
         return PhysicalQuantity(value=vn/vd, units=self.u.copy())
+
+    @property
+    def var0(self):
+        if self._var0.v is None:
+            raise ValueError("No initial value - was this ever set?")
+        return self._var0
+
+    @var0.setter
+    def var0(self, val):
+        self._var0.update(val)

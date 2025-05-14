@@ -25,6 +25,7 @@ import logging
 import copy
 
 from ..utilities import load_data_file
+from ..exceptions import UnitsMissmatchException
 
 logger = logging.getLogger(__name__)
 
@@ -310,6 +311,7 @@ class Units(object):
         Stored internally as one dict (s) using negative exponents.
         Unitless instances have s=={}
         """
+        super().__init__()
         self.s = dict() if s is None else s
         self.context = context
 
@@ -339,7 +341,7 @@ class Units(object):
         elif not len(self.s) and not isinstance(other, Units):
             return # we do not have units, and other is not a units class... no check
         else:
-            raise TypeError(f"Units do not support subtraction (not equal) for {self} and {other}")
+            raise UnitsMissmatchException(self, other, "subtraction")
 
     def __rsub__(self, other):
         if self == other:
@@ -347,7 +349,7 @@ class Units(object):
         elif not len(self.s) and not isinstance(other, Units):
             return # we do not have units, and other is not a units class... no check
         else:
-            raise TypeError(f"Units do not support (r)subtraction (not equal) for {self} and {other}")
+            raise UnitsMissmatchException(other, self, "subtraction")
 
     def __add__(self, other):
         if self == other:
@@ -355,7 +357,7 @@ class Units(object):
         elif not len(self.s) and not isinstance(other, Units):
             return # we do not have units, and other is not a units class... no check
         else:
-            raise TypeError(f"Units do not support addition (not equal) for {self} and {other}")
+            raise UnitsMissmatchException(self, other, "addition")
 
     def __radd__(self, other):
         if self == other:
@@ -363,7 +365,7 @@ class Units(object):
         elif not len(self.s) and not isinstance(other, Units):
             return # we do not have units, and other is not a units class... no check
         else:
-            raise TypeError(f"Units do not support (r)addition (not equal) for {self} and {other}")
+            raise UnitsMissmatchException(other, self, "addition")
 
     def __div__(self, other):
         return self.__truediv__(other)
@@ -437,6 +439,7 @@ class Units(object):
 
         if self.context not in self.CONTEXTS.keys(): # load new context if we do not have it already
             Units.CONTEXTS[self.context] = load_unit_context(self.context)
+            logger.info(f"Loaded new units context: {self.context}")
 
         cntxt = Units.CONTEXTS[self.context] # just to avoid typing a bunch...
 
@@ -447,7 +450,7 @@ class Units(object):
                     sbase[su] = sbase.get(su,0) + se*e
             else:
                 sbase[u] = sbase.get(u, 0) + e
-
+        
         return Units(s=sbase, context=self.context)
 
     def copy(self):

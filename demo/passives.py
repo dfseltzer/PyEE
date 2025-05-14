@@ -1,36 +1,42 @@
 
 import pyee
+import pyee.exceptions
 from pyee.passives import Resistor, Inductor, Capacitor
+import pyee.passives
 
-#pyee.logger.setLevel(level=20) # info
-pyee.logger.setLevel(level=50) # above error... basically off...
+pyee.logger.setLevel(level=20) # info
+#pyee.logger.setLevel(level=50) # above error... basically off...
 
 R1 = Resistor(1000)
 R2 = Resistor(125)
-
 C1 = Capacitor(1e-6)
 
-print(f"{R1} + {R2} = {R1+R2}")
-
+print(f"Resisor Addition: {R1} + {R2} = {R1+R2}")
 print(f"Trying to add R1 = {R1} to C1 = {C1}")
 try:
     Z1 = R1+C1
-except TypeError as e:
-    print(f"Failed with: {e}")
+except pyee.exceptions.UnitsMissmatchException as e:
+    print(f">> Failed with: {e}")
 else:
-    print(f"Success? Z1 = {Z1}")
+    print(f">> Success? Z1 = {Z1}")
 
 R1_base = R1.as_base()
-print(f"R1 in base units: R1_base = {R1_base}")
-
-R1_simple = R1_base.simplify()
-print(f"R1_base simplified again: R1_simple = {R1_simple}")
+print(f"R1 in base units (context is {R1.u.context}): R1 = {R1_base}")
+print(f"R1 in base units simplified again: R1 = {R1_base.simplify()}")
 
 R3 = R1 | R2
-print(f"R1 ({R1}) | R2 ({R2}) = ({R3})")
+print(f"R1 ({R1}) | R2 ({R2}) = ({R3}) = R3")
+
+# allow addition of non-like units as impedances,
+pyee.passives.set_error_on_z_transform(False)
+
+Z0 = R3 + C1
+print(f"R3 ({R3}) + C1 ({C1}) = ({Z0})")
 
 Z1 = R3 | C1
 print(f"R3 ({R3}) | C1 ({C1}) = ({Z1})")
+
+exit()
 
 Z1.simplify()
 print(f"Simplified Z1={Z1}")
