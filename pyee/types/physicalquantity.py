@@ -12,8 +12,8 @@ logger = logging.getLogger(__name__)
 
 from ..exceptions import UnitsMissmatchException
 
-from ..types.units import Units
-from ..types.units import Prefix
+from .units import Units
+from .units import Prefix
 
 from ..math.polynomials import polyeval
 from ..math.polynomials import polymul

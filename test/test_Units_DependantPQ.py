@@ -7,7 +7,7 @@ logger.setLevel(logging.INFO)
 class TestCase_create(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        from pyee.types.pq import DependantPhysicalQuantity
+        from pyee.types.physicalquantity import DependantPhysicalQuantity
         cls.DPQ = DependantPhysicalQuantity
 
     def test_create(self):

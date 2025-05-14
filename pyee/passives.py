@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from abc import ABC, abstractmethod
-from .types.pq import PhysicalQuantity
+from .types.physicalquantity import PhysicalQuantity
 from .types.impedance import Impedance
 
 from .exceptions import UnitsMissmatchException
@@ -27,43 +27,6 @@ def set_error_on_z_transform(val):
 class PassiveComponent(ABC, PhysicalQuantity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
-    def __or__(self, other):
-        try:
-            nv = self * other / (self + other)
-            return {"Ohm": lambda o: Resistor(value=o.v*o.p),
-                    "F": lambda o: Capacitor(value=o.v*o.p),
-                    "L": lambda o: Inductor(value=o.v*o.p)}.get(str(nv.u), lambda o: o)(nv)
-        except TypeError:
-            logger.warning(f"Unable to parallel natively - converting to impedance... {self} and {other}")
-            sZ = self.Z
-            oZ = other.Z
-            return sZ * oZ / (sZ + oZ)
-
-    def __ror__(self, other):
-        #TODO if units are the same on self and other, return correct passive type if possible
-        try:
-            nv = other * self / (other + self)
-            return {"Ohm": lambda o: Resistor(value=o.v * o.p),
-                    "F": lambda o: Capacitor(value=o.v * o.p),
-                    "L": lambda o: Inductor(value=o.v * o.p)}.get(str(nv.u), lambda o: o)(nv)
-        except TypeError:
-            logger.warning(f"Unable to parallel natively - converting to impedance... {other} and {self}")
-            oZ = other.Z
-            sZ = self.Z
-            return oZ * sZ / (oZ + sZ)
-
-    #TODO add other math operation over-rides... try and use parent value, and if that fails convert to impedance
-    # and try to use that instead
-
-    @property
-    @abstractmethod
-    def Z(self):
-        """
-        Impedance representation of this component
-        :return: new Impedance instance
-        """
-        pass
 
     def __add__(self, value):
         try:
@@ -89,6 +52,33 @@ class PassiveComponent(ABC, PhysicalQuantity):
         otherZ = value.Z
         return otherZ + thisZ 
 
+    def __or__(self, other):
+        try:
+            nv = self * other / (self + other)
+            return {"Ohm": lambda o: Resistor(value=o.v*o.p),
+                    "F": lambda o: Capacitor(value=o.v*o.p),
+                    "L": lambda o: Inductor(value=o.v*o.p)}.get(str(nv.u), lambda o: o)(nv)
+        except (TypeError, AttributeError) as _:
+            logger.warning(f"Unable to parallel natively - converting to impedance... {self} and {other}")
+        
+        sZ = self.Z
+        oZ = other.Z
+        return (sZ * oZ / (sZ + oZ))
+
+    def __ror__(self, other):
+        #TODO if units are the same on self and other, return correct passive type if possible
+        try:
+            nv = other * self / (other + self)
+            return {"Ohm": lambda o: Resistor(value=o.v * o.p),
+                    "F": lambda o: Capacitor(value=o.v * o.p),
+                    "L": lambda o: Inductor(value=o.v * o.p)}.get(str(nv.u), lambda o: o)(nv)
+        except (TypeError, AttributeError) as _:
+            logger.warning(f"Unable to parallel natively - converting to impedance... {other} and {self}")
+        
+        oZ = other.Z
+        sZ = self.Z
+        return (oZ * sZ / (oZ + sZ))
+
     def __sub__(self, value):
         try:
             return super().__sub__(value)
@@ -113,6 +103,14 @@ class PassiveComponent(ABC, PhysicalQuantity):
         otherZ = value.Z
         return otherZ - thisZ 
 
+    @property
+    @abstractmethod
+    def Z(self):
+        """
+        Impedance representation of this component
+        :return: new Impedance instance
+        """
+        pass
 
 class Resistor(PassiveComponent):
     def __init__(self, value, **kwargs):

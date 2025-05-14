@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 import numpy as np
 
-from .pq import DependantPhysicalQuantity
+from .physicalquantity import DependantPhysicalQuantity
 
 class Impedance(DependantPhysicalQuantity):
     """
