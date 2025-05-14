@@ -10,15 +10,18 @@ import copy
 
 logger = logging.getLogger(__name__)
 
-from ..exceptions import UnitsMissmatchException
-
 from .units import Units
 from .units import Prefix
+
+from .. import GLOBAL_TOLERANCE
 
 from ..math.polynomials import polyeval
 from ..math.polynomials import polymul
 from ..math.polynomials import polyadd
 from ..math.polynomials import polyprint
+from ..math.polynomials import polysub
+
+from ..exceptions import UnitsMissmatchException
 
 class PhysicalQuantity(object):
     __DEBUG = False
@@ -197,7 +200,9 @@ class DependantPhysicalQuantity(object):
     """
     __DEBUG = False
 
-    def __init__(self, num=None, den=None, units=None, var0=None, var_units=""):
+    def __init__(self, num=None, den=None, units=None, 
+                 var0=None, var_units="", var_symbol="x", 
+                 tol=GLOBAL_TOLERANCE):
         """
         :param num: numerator array
         :param den: denominator array
@@ -205,18 +210,27 @@ class DependantPhysicalQuantity(object):
         :param var0: default variable value - used when accessing value as scalars
         :param var_units: variable units
         """
-        #TODO add accuracy argument... limit float stuff so equality works
-
         super().__init__()
         self.u = Units.from_any(units)
 
         self.num = np.array(num if num is not None else [1])
         self.den = np.array(den if den is not None else [1])
 
+        self.tol = tol
+
         if isinstance(var0, PhysicalQuantity):
             self._var0 = var0
         else:
             self._var0 = PhysicalQuantity(value=var0, units=var_units)
+
+        self._var_symbol = var_symbol
+
+    def reduce_to_tol(self):
+        """
+        Removes all coefficients less than tolerance
+        """
+        self.num = np.where(abs(self.num) > self.tol, self.num, 0)
+        self.den = np.where(abs(self.den) > self.tol, self.den, 0)
 
     def __repr__(self):
         try:
@@ -231,9 +245,10 @@ class DependantPhysicalQuantity(object):
             v0 = str(self.var0.u)
         except:
             v0 = "*"
-        nps = polyprint(self.num)
-        dps = polyprint(self.den)
-        return f"f(x[{v0}])[{str(self.u)}]=({nps})/({dps})"
+        self.reduce_to_tol()
+        nps = polyprint(self.num, var=self._var_symbol)
+        dps = polyprint(self.den, var=self._var_symbol)
+        return f"f({self._var_symbol}[{v0}])[{str(self.u)}]=({nps})/({dps})"
 
     def __mul__(self, other):
         if isinstance(other, DependantPhysicalQuantity):
@@ -259,11 +274,22 @@ class DependantPhysicalQuantity(object):
         except AttributeError as e:
             logger.error(f"Unable to find units for subtraction: {self} and {other}.  Exception was: {e}")
             raise e
-        except TypeError as e:
+        except UnitsMissmatchException as e:
             logger.error(f"Units not compatible for subtraction: {self.u} and {other.u}")
             raise e
+        
+        if self.__DEBUG: logger.error(f"SUBS: as DPQs: {self} - {other}")
 
-        pass
+        # find common denom
+        den = polymul(self.den, other.den)
+        num_a = polymul(self.num, other.den) 
+        num_b = polymul(self.den, other.num) 
+        num = polysub(num_a, num_b)
+
+        return type(self)(num=num, den=den,
+                          units=self.u.copy(),
+                          var0=self._var0.v, var_units=self._var0.u.copy(),
+                          var_symbol=self._var_symbol)
 
     def __rsub__(self, other):
         try:
@@ -275,7 +301,18 @@ class DependantPhysicalQuantity(object):
             logger.error(f"Units not compatible for subtraction: {other.u} and {self.u}")
             raise e
 
-        pass
+        if self.__DEBUG: logger.error(f"SUBS: as DPQs: {self} - {other}")
+
+        # find common denom
+        den = polymul(self.den, other.den)
+        num_a = polymul(self.num, other.den) 
+        num_b = polymul(self.den, other.num) 
+        num = polysub(num_b, num_a)
+
+        return type(self)(num=num, den=den,
+                          units=self.u.copy(),
+                          var0=self._var0.v, var_units=self._var0.u.copy(),
+                          var_symbol=self._var_symbol)
 
     def __add__(self, other):
         try:
@@ -297,7 +334,8 @@ class DependantPhysicalQuantity(object):
 
         return type(self)(num=num, den=den,
                           units=self.u.copy(),
-                          var0=self._var0.v, var_units=self._var0.u.copy())
+                          var0=self._var0.v, var_units=self._var0.u.copy(),
+                          var_symbol=self._var_symbol)
 
     def __radd__(self, other):
         try:
