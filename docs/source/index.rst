@@ -2,40 +2,49 @@
 PyEE: Python Helpers for Engineering
 ====================================
 
-Subpackages
------------
+A collection of generally useful python helper, wrapers, and other things for engineering.  Relies on Numpy for a bunch
+of stuff, either using directly or preferably adding wrappers to make things easier.
+
+Subpackages are listed below...
 
 .. toctree::
-   :maxdepth: 2
-
-   pyee.math
-   pyee.units
+   :maxdepth: 1
 
 
-Submodules
-----------
+Math
+----
 
-Passives module
---------------------
+todo
+
+
+Types
+-----
+
+todo
+   
+
+Passives
+--------
 
 .. automodule:: pyee.passives
-   :members:
-   :show-inheritance:
-   :undoc-members:
+   :no-index:
 
-Utilities module
----------------------
+.. autosummary::
+   :toctree:
+   :recursive:
 
-.. automodule:: pyee.utilities
-   :members:
-   :show-inheritance:
-   :undoc-members:
 
-Module contents
----------------
+Package Support Modules
+-----------------------
+The following modules are not expected to be called directly, but they exist.
 
-.. automodule:: pyee
-   :members:
-   :show-inheritance:
-   :undoc-members:
+Exceptions
+^^^^^^^^^^
 
+todo
+
+
+Utilities
+^^^^^^^^^
+
+todo

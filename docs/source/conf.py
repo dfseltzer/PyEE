@@ -26,7 +26,8 @@ author = 'dfseltzer'
 
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.duration'
+    'sphinx.ext.duration',
+    'sphinx.ext.autosummary',
 ]
 
 templates_path = ['_templates']
@@ -37,4 +38,4 @@ exclude_patterns = []
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'alabaster'
-html_static_path = ['_static']
+html_static_path = ['custom_static']

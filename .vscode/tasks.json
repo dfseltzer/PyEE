@@ -1,0 +1,36 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "sphinx-build: standard",
+            "type": "shell",
+            "command": "sphinx-build",
+            "args": [
+                "-M", "html",
+                "./docs/source",
+                "./docs/build"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "problemMatcher": [
+                "$go"
+            ]
+        },
+    {
+            "label": "sphinx-build: make clean html",
+            "type": "shell",
+            "command": "make",
+            "args": [
+                "clean",
+                "html"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/docs"
+            },
+            "problemMatcher": [
+                "$go"
+            ]
+        }
+    ]
+} 

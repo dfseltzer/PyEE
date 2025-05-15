@@ -1,9 +1,8 @@
 """
-Polynomial helpers
+Polynomial helpers.  Mostly wrappers on Numpy functions with some added help to make it simpler.
 """
 
 import numpy as np
-
 
 def polyadd(c1, c2):
     """

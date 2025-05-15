@@ -1,3 +1,8 @@
+"""
+A collection of generally useful python helper, wrapers, and other things for engineering.  Relies on Numpy for a bunch
+of stuff, either using directly or preferably adding wrappers to make things easier.
+"""
+
 __version__ = "2025.0.1"
 
 import logging
