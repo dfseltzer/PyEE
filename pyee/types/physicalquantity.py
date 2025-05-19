@@ -26,17 +26,13 @@ from ..exceptions import UnitsMissmatchException
 class PhysicalQuantity(object):
     __DEBUG = False
 
-    def __init__(self, value=None, units=None):
+    def __init__(self, value, units=None):
         super().__init__()
 
         if self.__DEBUG: logger.error(f"Creating PQ from value={value}, units={units}")
 
-        if value is not None:
-            self.p = Prefix.from_number(value)
-            self.v = 1/self.p * value # avoid python calling __rdiv__ on each element for lists
-        else:
-            self.p = None
-            self.v = None
+        self.p = Prefix.from_number(value)
+        self.v = 1/self.p * value # avoid python calling __rdiv__ on each element for lists
 
         if self.__DEBUG: logger.error(f".... p={self.p} ({type(self.p)})")
         if self.__DEBUG: logger.error(f".... v={self.v} ({type(self.v)})")

@@ -9,9 +9,9 @@ class TestCase_from_string(unittest.TestCase):
 
     def test_from_string(self):
         p = self.Prefix("k")
-        self.assertEqual(p.f[0], 1000)
+        self.assertEqual(p.f, 1000)
         p = self.Prefix.from_name("kilo")
-        self.assertEqual(p.f[0], 1000)
+        self.assertEqual(p.f, 1000)
 
     def test_from_number(self):
         p = self.Prefix.from_number(0.000015)

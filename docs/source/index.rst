@@ -2,8 +2,9 @@
 PyEE: Python Helpers for Engineering
 ====================================
 
-A collection of generally useful python helper, wrapers, and other things for engineering.  Relies on Numpy for a bunch
-of stuff, either using directly or preferably adding wrappers to make things easier.
+A collection of generally useful python helper, wrapers, and other things for engineering.  
+Relies on Numpy for a bunch of stuff, either using directly or preferably adding wrappers 
+to make things easier.
 
 Subpackages are listed below...
 

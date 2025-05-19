@@ -105,7 +105,7 @@ class PassiveComponent(ABC, PhysicalQuantity):
 
     @property
     @abstractmethod
-    def Z(self):
+    def Z(self) -> Impedance:
         """
         Impedance representation of this component
         :return: new Impedance instance
