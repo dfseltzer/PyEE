@@ -18,6 +18,28 @@ class TestCase_create(unittest.TestCase):
         self.assertEqual(p2.v, 100)
         self.assertEqual(p2.u, "m/s^2")
 
+    def test_from_string(self):
+        p1 = self.PQ.from_string("0.0001")
+        p2 = self.PQ.from_string("0.1m")
+        p3 = self.PQ.from_string("0.1 H")
+        p4 = self.PQ.from_string("0.1m H")
+        
+        self.assertEqual(p1.v, 100)
+        self.assertEqual(p1.p, "u")
+        self.assertEqual(p1.u, "1")
+
+        self.assertEqual(p2.v, 100)
+        self.assertEqual(p2.p, "u")
+        self.assertEqual(p2.u, "1")
+
+        self.assertEqual(p3.v, 100)
+        self.assertEqual(p3.p, "m")
+        self.assertEqual(p3.u, "H")
+
+        self.assertEqual(p4.v, 100)
+        self.assertEqual(p4.p, "u")
+        self.assertEqual(p4.u, "H")
+
     def test_multiply_instance(self):
         p1 = self.PQ(50000, "kg")
         p2 = self.PQ(0.1, "m/s^2")

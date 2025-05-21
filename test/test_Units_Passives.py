@@ -13,7 +13,7 @@ class TestCase_create(unittest.TestCase):
         L1 = self.Inductor(0.001)
 
         self.assertEqual(L1.v, 1.0)
-        self.assertEqual(L1.p, "m")
+        self.assertEqual(L1.p.s, "m")
 
         #TODO make the following work?
         #L2 = self.Inductor("1m")

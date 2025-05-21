@@ -4,14 +4,14 @@ Physical Quantity  and derived classes
 
 import numpy as np
 
-import re
 import logging
 import copy
 
-logger = logging.getLogger(__name__)
+from abc import abstractmethod
 
 from .units import Units
-from .units import Prefix
+from .prefixes import Prefix
+from .converters import vpu_from_ustring
 
 from .. import GLOBAL_TOLERANCE
 
@@ -23,8 +23,16 @@ from ..math.polynomials import polysub
 
 from ..exceptions import UnitsMissmatchException
 
+logger = logging.getLogger(__name__)
+
+
 class PhysicalQuantity(object):
     __DEBUG = False
+
+    @classmethod
+    def from_string(cls, ustring):
+        v, p, u = vpu_from_ustring(ustring)
+        return cls(value=v*p, units=u)
 
     def __init__(self, value, units=None):
         super().__init__()
@@ -196,6 +204,11 @@ class DependantPhysicalQuantity(object):
     """
     __DEBUG = False
 
+    @classmethod
+    def from_string(cls, ustring):
+        v, p, u = vpu_from_ustring(ustring)
+        return cls(num=[v*p], den=[1], units=u)
+
     def __init__(self, num=None, den=None, units=None, 
                  var0=None, var_units="", var_symbol="x", 
                  tol=GLOBAL_TOLERANCE):
@@ -203,7 +216,7 @@ class DependantPhysicalQuantity(object):
         :param num: numerator array
         :param den: denominator array
         :param units: units as string or units class
-        :param var0: default variable value - used when accessing value as scalars
+        :param var0: default variable value - used when accessing value as scalars.
         :param var_units: variable units
         """
         super().__init__()
@@ -214,7 +227,9 @@ class DependantPhysicalQuantity(object):
 
         self.tol = tol
 
-        if isinstance(var0, PhysicalQuantity):
+        if var0 is None:
+            self._var0 = None
+        elif isinstance(var0, PhysicalQuantity):
             self._var0 = var0
         else:
             self._var0 = PhysicalQuantity(value=var0, units=var_units)
@@ -247,15 +262,19 @@ class DependantPhysicalQuantity(object):
         return f"f({self._var_symbol}[{v0}])[{str(self.u)}]=({nps})/({dps})"
 
     def __mul__(self, other):
+        varargs = {"var0": None if self._var0 is None else self._var0,
+                   "var_units": None if self._var0 is None else self._var0.u.copy()}
+        
         if isinstance(other, DependantPhysicalQuantity):
-            if self.__DEBUG: logger.error(f"MULT: as DPQs: {self} x {other}")
+            if self.__DEBUG: logger.error(f"MULT: as DPQs: {self} x {other}")            
             return type(self)(num=polymul(self.num, other.num), 
                               den=polymul(self.den, other.den),
                               units=self.u * other.u,
-                              var0=self._var0.v, var_units=self._var0.u.copy())
+                              **varargs)
+        
         else: #try scalar multiply
             return type(self)(num=self.num.copy()*other, den=self.den.copy(),
-                              units=self.u.copy(), var0=self._var0.copy())
+                              units=self.u.copy(), **varargs)
 
     def __rmul__(self, other):
         """
@@ -374,7 +393,7 @@ class DependantPhysicalQuantity(object):
                               units=1/self.u.copy(), var0=self._var0.copy()) 
 
     def __eq__(self, other):
-        pass
+        raise NotImplementedError("maybe write some code?")
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -398,10 +417,18 @@ class DependantPhysicalQuantity(object):
 
     @property
     def var0(self):
-        if self._var0.v is None:
+        if self._var0 is None:
             raise ValueError("No initial value - was this ever set?")
-        return self._var0
+        else:
+            return self._var0
 
     @var0.setter
     def var0(self, val):
-        self._var0.update(val)
+        if val is None: # easy case: unset what we had.
+            self._var0 = None
+        elif isinstance(val, PhysicalQuantity): # easy case: just set to new PQ
+            self._var0 = val
+        elif self._var0 is None:
+            self._var0 = PhysicalQuantity(value=val)
+        else:  # assume self._var0 is a PQ, and new item is not...
+            self._var0 = PhysicalQuantity(value=val, units=self._var0.u) # type: ignore
