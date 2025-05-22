@@ -45,7 +45,6 @@ def load_unit_context(context):
     return cdat
 
 class Units(object):
-    #re_den_group = re.compile(r"/\([a-zA-Z]+(?:\^[+-]?\d+)?(?:\.+[a-zA-Z]+(?:\^[+-]?\d+)?)*\)")
     re_den_group = re.compile(r"/\(([a-zA-Z]+(?:\^[+-]?\d+)?|1)?(?:\.+[a-zA-Z]+(?:\^[+-]?\d+)?)*\)")
     re_single_den = re.compile(r"/\.*(?P<u>[a-zA-Z]+)(?P<e>\^[+-]?\d+)?\.*")
     re_non_exp_sets = re.compile(r"(?:[a-zA-Z]+(?=\.))|(?:[a-zA-Z]+$)")

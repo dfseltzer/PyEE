@@ -23,3 +23,6 @@ pyee=["data/*"]
 [tool.setuptools.dynamic]
 version = {attr = "pyee.__version__"}  # any module attribute compatible with ast.literal_eval
 readme = {file = ["README.md"]}
+
+[tool.pyright]
+typeCheckingMode = "basic"

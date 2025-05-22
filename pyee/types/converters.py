@@ -4,8 +4,15 @@ import re
 from .units import Units
 from .prefixes import Prefix
 
-re_number_and_prefix = re.compile(
-        r"^(?P<number>(?:[-+]?\d+\.?\d*[eE][-+]?\d+)|(?:[-+]?\d+(\.\d+)?))(?P<prefix>[a-zA-Z]?)$")
+from ..regex import re_number_and_prefix
+
+def vp_from_number(number):
+    """
+    Convert a number to a value an prefix
+    """
+    p = Prefix.from_number(number)
+    v = 1/p * number # avoid python calling __rdiv__ on each element for lists
+    return v, p
 
 def vpu_from_ustring(ustring):
     """
@@ -33,7 +40,7 @@ def vpu_from_ustring(ustring):
     if len(parts) > 2:
         raise ValueError(f"Unable to convert string into Float, Prefix, Units set: {ustring}.  Too many parts?")
     
-    valprevix_match = cls.re_number_and_prefix.fullmatch(parts[0])
+    valprevix_match = re_number_and_prefix.fullmatch(parts[0])
 
     if valprevix_match is None:
         raise ValueError(f"Unable to convert string into Float, Prefix, Units set: {ustring}.  Bad format?")
