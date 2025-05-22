@@ -6,12 +6,12 @@ from .prefixes import Prefix
 
 from ..regex import re_number_and_prefix
 
-def vp_from_number(number):
+def vp_from_number(number: float) -> tuple[float, object]:
     """
     Convert a number to a value an prefix
     """
     p = Prefix.from_number(number)
-    v = 1/p * number # avoid python calling __rdiv__ on each element for lists
+    v = number/p.f # avoid python calling __rdiv__ on each element for lists
     return v, p
 
 def vpu_from_ustring(ustring):
@@ -51,5 +51,7 @@ def vpu_from_ustring(ustring):
     val = float(val_s)
     prefix = Prefix(prefix_s)
 
+    val_u, prefix_u = Prefix.rebalance(val, prefix)
+
     units = Units.from_string(parts[1] if len(parts) == 2 else "")
-    return val, prefix, units
+    return val_u, prefix_u, units

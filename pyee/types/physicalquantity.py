@@ -79,7 +79,7 @@ class PhysicalQuantity(PhysicalQuantityBase):
         if self.__DEBUG:
             logger.error(f".... p={prefix} ({type(prefix)})")
             logger.error(f".... v={value} ({type(value)})")
-            logger.error(f".... v={units} ({type(units)})")
+            logger.error(f".... u={units} ({type(units)})")
 
         self.v = value
         self.p = prefix

@@ -6,7 +6,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 from .types.physicalquantity import PhysicalQuantity
 from .types.impedance import Impedance
 
@@ -24,7 +24,7 @@ def set_error_on_z_transform(val):
     global ERROR_ON_Z_TRANSFORM
     ERROR_ON_Z_TRANSFORM = bool(val)
 
-class PassiveComponent(ABC, PhysicalQuantity):
+class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

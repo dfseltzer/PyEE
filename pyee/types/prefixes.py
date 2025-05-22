@@ -4,6 +4,8 @@ import copy
 
 import numpy as np
 
+from typing import NewType
+
 from ..utilities import load_data_file
 
 logger = logging.getLogger(__name__)
@@ -30,7 +32,15 @@ class Prefix(object):
     __DEBUG = False
 
     @staticmethod
-    def from_name(pstring):
+    def rebalance(num: float, prefix: "Prefix | None" = None) -> tuple[float, "Prefix"]:
+        value = num*prefix.f if prefix is not None else num
+        np = Prefix.from_number(value)
+        nv = value/np.f
+        return nv, np
+
+
+    @classmethod
+    def from_name(cls, pstring):
         """
         Searches for a prefix matching the given symbol.  Does not check for multiple matches... as
         this should never happen.  If no match is made, raises key error.
@@ -50,8 +60,8 @@ class Prefix(object):
 
         return pobj
 
-    @staticmethod
-    def from_number(num):
+    @classmethod
+    def from_number(cls, num):
         """
         Returns the closest prefix to use for the given number.  Attempts to use a prefix that
         will result in a number formatted "well", meaning 1-3 digits ahead of the decimal place.
@@ -61,20 +71,23 @@ class Prefix(object):
         """
         #TODO array-itize this... some messy lists mixed with arrays below.
 
-        pobj = Prefix()  # forces load of initial dict... dumb but simple
+        pobj = cls()  # forces load of initial dict... dumb but simple
 
         pnum = abs(num)
 
         # if greater than 1, we want the next smallest factor.
         #scalar was: diffs = [1 if (pnum - v) >= 0 else 0 for v in cls._data_value_scale]
-        diffs = np.array([1*((pnum - v) >= 0) for v in Prefix._data_value_scale]) # type: ignore
-        pobj.f = Prefix._data_value_scale[max(np.max(diffs.nonzero()),0)] # type: ignore
-        pobj.s = Prefix._data_by_value[pobj.f]["symbol"] # type: ignore
-        pobj.n = Prefix._data_by_value[pobj.f]["name"] # type: ignore
+        diffs = np.array([1*((pnum - v) >= 0) for v in cls._data_value_scale]) # type: ignore
+        if cls.__DEBUG: logger.error(f"... ... PREFIX: diffs={diffs}")
+
+        pobj.f = cls._data_value_scale[max(np.max(diffs.nonzero()),0)] # type: ignore
+        pobj.s = cls._data_by_value[pobj.f]["symbol"] # type: ignore
+        pobj.n = cls._data_by_value[pobj.f]["name"] # type: ignore
+
         return pobj
 
     def __init__(self, symbol=""):
-        if Prefix._data_by_symbol is None:
+        if self._data_by_symbol is None:
             Prefix._data_by_symbol = load_data_file(Prefix._DATA_FILE)
             Prefix._data_by_value = {d["factor"]: {"symbol":s, "name":d["name"]} for s, d in Prefix._data_by_symbol.items()}
             Prefix._data_value_scale = sorted(Prefix._data_by_value.keys())
@@ -100,15 +113,15 @@ class Prefix(object):
             return f"Prefix [{self.s}] {self.n}: {self.f}"
 
     def __str__(self):
-        try:
-            nvals = len(self.f) # type: ignore
+        try: # On success, array, on fial, single value
+            nvals = len(self.s) # type: ignore
         except TypeError:
-            return self.s[0]
+            return self.s
         
         if nvals < 5:
-            return "["+", ".join([f"{v}" for v in self.f])+"]"  # type: ignore
+            return "["+", ".join([f"{v}" for v in self.s])+"]"  # type: ignore
         else:
-            return f"[{self.f[0]},... + {nvals-1} others]"  # type: ignore
+            return f"[{self.s[0]},... + {nvals-1} others]"  # type: ignore
 
     def __mul__(self, other):
         if isinstance(other, Prefix):
