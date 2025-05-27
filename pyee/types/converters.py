@@ -2,11 +2,12 @@
 import re
 
 from .units import Units
+from .aliases import t_numeric
 from .prefixes import Prefix
 
 from ..regex import re_number_and_prefix
 
-def vp_from_number(number: float) -> tuple[float, object]:
+def vp_from_number(number: t_numeric) -> tuple[t_numeric, "Prefix"]:
     """
     Convert a number to a value an prefix
     """
@@ -14,7 +15,7 @@ def vp_from_number(number: float) -> tuple[float, object]:
     v = number/p.f # avoid python calling __rdiv__ on each element for lists
     return v, p
 
-def vpu_from_ustring(ustring):
+def vpu_from_ustring(ustring : str) -> tuple[t_numeric, "Prefix", "Units"]:
     """
     Convert a unit string into [Value, Prefix, Unit] set
     For example,       10uH =  [10,       <u>,  <H>], where <u> is a Prefix instance,

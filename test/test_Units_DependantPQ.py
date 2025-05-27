@@ -21,7 +21,7 @@ class TestCase_create(unittest.TestCase):
     def test_call_var0(self):
         # no arguments, so calls with default variable
         z1 = self.DPQ(num=[1, 1], den=[1], var_units="kg")
-        self.assertRaises(ValueError, lambda: z1())
+        self.assertRaises(ValueError, z1)
         z1.var0 = 5
         v1 = z1()
         self.assertEquals(v1, 6)

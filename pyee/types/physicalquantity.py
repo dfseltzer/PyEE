@@ -11,9 +11,13 @@ from abc import ABC
 from abc import abstractmethod
 
 from .units import Units
+from .units import t_UnitsSource
 from .prefixes import Prefix
 from .converters import vpu_from_ustring
 from .converters import vp_from_number
+
+from .aliases import t_numeric
+from .aliases import t_listTuple
 
 from .. import GLOBAL_TOLERANCE
 
@@ -33,12 +37,12 @@ class PhysicalQuantityBase(ABC):
 
     @classmethod
     @abstractmethod
-    def from_string(cls, ustring, **kwargs) -> object:
+    def from_string(cls, ustring, **kwargs) -> "PhysicalQuantityBase":
         pass
 
     @classmethod
     @abstractmethod
-    def from_value(cls, *args, **kwargs) -> object:
+    def from_value(cls, *args, **kwargs) -> "PhysicalQuantityBase":
         pass
 
     def __init__(self, *args, **kwargs):
@@ -52,25 +56,25 @@ class PhysicalQuantity(PhysicalQuantityBase):
     __DEBUG = False
 
     @classmethod
-    def from_string(cls, ustring:str, **kwargs):
+    def from_string(cls, ustring:str, **kwargs) -> "PhysicalQuantity":
         """
         Create a new Physical Quantity from a unit string.
         """
         if cls.__DEBUG: logger.error(f"Creating PQ from ustring={ustring}")
-        v, p, u = vpu_from_ustring(ustring)
+        (v, p, u) = vpu_from_ustring(ustring)
         return cls(v, p, u, **kwargs)
 
     @classmethod
-    def from_value(cls, value:float, units=None, **kwargs):
+    def from_value(cls, value:t_numeric, units=None, **kwargs) -> "PhysicalQuantity":
         """
         Create a new Physical Quantity from a value and optional unit.
         """
         if cls.__DEBUG: logger.error(f"Creating PQ from value={value}, units={units}")
         v, p = vp_from_number(value)
         u = Units.from_any(units)
-        return cls(v, p, u, **kwargs) #type: ignore
+        return cls(v, p, u, **kwargs)
 
-    def __init__(self, value:float, prefix:Prefix, units:Units) -> None:
+    def __init__(self, value:t_numeric, prefix:Prefix, units:Units) -> None:
         """
         Use constructors from_value and from_string!
         """
@@ -209,12 +213,12 @@ class PhysicalQuantity(PhysicalQuantityBase):
         newunits = self.u.as_base(**kwargs)
         return PhysicalQuantity(value=self.v, prefix=self.p.copy(), units=newunits)
 
-    def copy(self):
+    def copy(self) -> "PhysicalQuantity":
         return self.__copy__()
 
-    def simplify(self, **kwargs):
+    def simplify(self, **kwargs) -> "PhysicalQuantity":
         newunits = self.u.simplify(**kwargs)
-        return PhysicalQuantity(value=self.v, prefix=self.p, units=newunits) #type: ignore
+        return PhysicalQuantity(value=self.v, prefix=self.p, units=newunits)
 
 
 class DependantPhysicalQuantity(PhysicalQuantityBase):
@@ -241,11 +245,16 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
     __DEBUG = False
 
     @classmethod
-    def from_string(cls, ustring, **kwargs):
+    def from_string(cls, ustring : str, **kwargs) -> "DependantPhysicalQuantity":
         raise NotImplementedError(f"Not done yet... cant turn {ustring} into dependant.  Write some code maybe?")
     
     @classmethod
-    def from_value(cls, num, den=None, units=None, var0=None, var_units=None, **kwargs):
+    def from_value(cls, num : t_listTuple | None, 
+                   den : t_listTuple | None = None, 
+                   units : t_UnitsSource = None, 
+                   var0 : "PhysicalQuantity | t_numeric | None" = None, 
+                   var_units=None, 
+                   **kwargs) -> "DependantPhysicalQuantity":
         """
         :param num: numerator array
         :param den: denominator array, or None (if demoninator = 1)
@@ -263,9 +272,13 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
                    var0=var0, var_units=vu,
                    **kwargs)
 
-    def __init__(self, num=None, den=None, units=None, 
-                 var0=None, var_units=None, var_symbol="x", 
-                 tol=GLOBAL_TOLERANCE):
+    def __init__(self, num : t_listTuple | None = None, 
+                 den: t_listTuple | None = None, 
+                 units : t_UnitsSource | None = None, 
+                 var0: t_numeric | PhysicalQuantity | None=None, 
+                 var_units : t_UnitsSource| None=None, 
+                 var_symbol: str = "x", 
+                 tol: float=GLOBAL_TOLERANCE):
         """
         :param num: numerator array
         :param den: denominator array
@@ -276,16 +289,16 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
         super().__init__()
         self.u = Units.from_any(units)
 
-        self.num = num
-        self.den = den
+        self.num = np.array(num)
+        self.den = np.array(den)
         self.tol = tol
 
         if var0 is None:
             self._var0 = None
         elif isinstance(var0, PhysicalQuantity):
             self._var0 = var0
-        else:
-            self._var0 = PhysicalQuantity.from_value(value=var0, units=var_units)
+        else: # try it... might work?
+            self._var0 = PhysicalQuantity.from_value(value=var0, units=var_units)                
 
         self._var_symbol = var_symbol
 
@@ -302,7 +315,7 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
         except:
             v0 = "*"
         
-        return f"[DPQ({v0}):({self.num})/({self.den}):({self.u})]"
+        return f"[DPQ({v0}):({tuple(self.num)})/({tuple(self.den)}):({self.u})]"
 
     def __str__(self):
         try:
@@ -523,20 +536,16 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
     def __ne__(self, other):
         return not self.__eq__(other)
 
-    def __call__(self, var=None):
+    def __call__(self, var=None) -> "PhysicalQuantity":
         """
         Evaluate dependant pysical quantity at given point(s)
 
         Returns a PhysicalQuantity (non dependant)
         """
-        #TODO let this be called with physical quantities as input
-        #TODO update to support input arrays
 
-        if var is None:
-            if self.var0 is None:
-                raise ValueError("Unable to call dependant physical quantity: No value given, and var0 is NONE")
-            else:
-                var = self.var0
+        if (var is None) and (self.var0 is None):
+            raise ValueError("Unable to call dependant physical quantity: No value given, and var0 is NONE")
+        var = self.var0 if var is None else var
 
         if isinstance(var, PhysicalQuantity):
             if (self.var0 is not None) and (self.var0.u != var.u):
@@ -566,14 +575,14 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
             return self._var0
 
     @var0.setter
-    def var0(self, val):
+    def var0(self, val : None | PhysicalQuantity | t_numeric):
         if val is None: # easy case: unset what we had.
             self._var0 = None
         elif isinstance(val, PhysicalQuantity): # easy case: just set to new PQ
             self._var0 = val
         elif self._var0 is None:
             nv, np = vp_from_number(val)
-            nu = Units(s="1")
+            nu = Units() # unitless with no arguments...
             self._var0 = PhysicalQuantity(value=nv, prefix=np, units=nu)
         else:  # assume self._var0 is a PQ, and new item is not...
             nv, np = vp_from_number(val)

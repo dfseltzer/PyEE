@@ -25,6 +25,8 @@ import copy
 from ..utilities import load_data_file
 from ..exceptions import UnitsMissmatchException
 
+type t_UnitsSource = str | int | float | object
+    
 logger = logging.getLogger(__name__)
 
 def load_unit_context(context):
@@ -52,7 +54,7 @@ class Units(object):
     CONTEXTS = dict()
 
     @classmethod
-    def from_any(cls, other):
+    def from_any(cls, other : t_UnitsSource) -> "Units":
         """
         Create a new Units class from either a string or an existing units instance.
         """
@@ -60,7 +62,7 @@ class Units(object):
         if other is not None:
             if not isinstance(other, cls):
                 try:
-                    obj = cls.from_string(other)
+                    obj = cls.from_string(other) # type: ignore
                 except (ValueError, TypeError):
                     logger.warning(f"units provided not an instance or a proper string... just using as is?: {other}")
                     obj = cls(other)
@@ -71,7 +73,7 @@ class Units(object):
         return obj
 
     @classmethod
-    def from_string(cls, ustring, **kwargs):
+    def from_string(cls, ustring : str, **kwargs) -> "Units":
         """
         Creates a Unit object from a string representation.
 
@@ -136,7 +138,7 @@ class Units(object):
 
         return obj
 
-    def __init__(self, s=None, context="Electrical"):
+    def __init__(self, s : dict | None = None, context : str = "Electrical") -> None:
         """
         Units class.  Should be called from one of the .from_* class methods
         in most cases.  If called directly, returns a unitless unit.
@@ -270,7 +272,7 @@ class Units(object):
             raise e
         return s
 
-    def as_base(self, context=None):
+    def as_base(self, context : str | None = None) -> "Units":
         """
         Expand the units to base units as much as possible.  Uses the instances context
         if none is give.  If a new context is specified, then updates this units default
@@ -297,10 +299,10 @@ class Units(object):
         
         return Units(s=sbase, context=self.context)
 
-    def copy(self):
+    def copy(self) -> "Units":
         return self.__copy__()
 
-    def simplify(self, context=None):
+    def simplify(self, context : str | None = None) -> "Units":
         """
         Simplify the units as much as possible.  Uses the instances context
         if none is give.  If a new context is specified, then updates this units default
@@ -339,6 +341,7 @@ class Units(object):
 
         # if we are here, we failed to simplify
         logger.warning(f"Unable to simplify {self} in context: {self.context}")
+        return self
 
     @property
     def n(self):
