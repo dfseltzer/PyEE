@@ -8,7 +8,12 @@ logger = logging.getLogger(__name__)
 
 from abc import ABCMeta, abstractmethod
 from .types.physicalquantity import PhysicalQuantity
+from .types.prefixes import Prefix, t_PrefixObj
+from .types.units import t_UnitObj
 from .types.impedance import Impedance
+from .types.aliases import t_numeric
+
+from .types.converters import vp_from_number
 
 from .exceptions import UnitsMissmatchException
 
@@ -25,8 +30,12 @@ def set_error_on_z_transform(val):
     ERROR_ON_Z_TRANSFORM = bool(val)
 
 class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, value:t_numeric, prefix:t_PrefixObj | None, units:t_UnitObj, *args, **kwargs) -> None:
+        if prefix is None:
+            v, p = vp_from_number(value)
+        else:
+            v, p = Prefix.rebalance(value, prefix)
+        super().__init__(v, p, units, *args, **kwargs)
 
     def __add__(self, value):
         try:
@@ -114,7 +123,9 @@ class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
 
 class Resistor(PassiveComponent):
     def __init__(self, value, **kwargs):
-        super().__init__(value=value, units=kwargs.pop("units","Ohm"))
+        p = kwargs.pop("prefix",None)
+        u = kwargs.pop("units","Ohm")
+        super().__init__(value=value, prefix=p, units=u, **kwargs)
 
     @property
     def Z(self):
@@ -122,7 +133,9 @@ class Resistor(PassiveComponent):
 
 class Inductor(PassiveComponent):
     def __init__(self, value, **kwargs):
-        super().__init__(value=value, units=kwargs.pop("units","H"))
+        p = kwargs.pop("prefix",None)
+        u = kwargs.pop("units","H")
+        super().__init__(value=value, prefix=p, units=u, **kwargs)
 
     @property
     def Z(self):
@@ -130,7 +143,9 @@ class Inductor(PassiveComponent):
 
 class Capacitor(PassiveComponent):
     def __init__(self, value, **kwargs):
-        super().__init__(value=value, units=kwargs.pop("units","F"))
+        p = kwargs.pop("prefix",None)
+        u = kwargs.pop("units","F")
+        super().__init__(value=value, prefix=p, units=u, **kwargs)
 
     @property
     def Z(self):

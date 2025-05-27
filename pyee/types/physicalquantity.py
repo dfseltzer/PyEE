@@ -10,8 +10,8 @@ import copy
 from abc import ABC
 from abc import abstractmethod
 
-from .units import Units
-from .units import t_UnitsSource
+from .units import Units, t_UnitObj, t_UnitsSource
+
 from .prefixes import Prefix
 from .converters import vpu_from_ustring
 from .converters import vp_from_number
@@ -28,6 +28,9 @@ from ..math.polynomials import polyprint
 from ..math.polynomials import polysub
 
 from ..exceptions import UnitsMissmatchException
+
+type t_PQObj = PhysicalQuantity
+type t_PQSource = PhysicalQuantity | t_numeric | str
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +59,7 @@ class PhysicalQuantity(PhysicalQuantityBase):
     __DEBUG = False
 
     @classmethod
-    def from_string(cls, ustring:str, **kwargs) -> "PhysicalQuantity":
+    def from_string(cls, ustring:str, **kwargs) -> t_PQObj:
         """
         Create a new Physical Quantity from a unit string.
         """
@@ -65,7 +68,7 @@ class PhysicalQuantity(PhysicalQuantityBase):
         return cls(v, p, u, **kwargs)
 
     @classmethod
-    def from_value(cls, value:t_numeric, units=None, **kwargs) -> "PhysicalQuantity":
+    def from_value(cls, value:t_numeric, units:t_UnitsSource = None, **kwargs) -> t_PQObj:
         """
         Create a new Physical Quantity from a value and optional unit.
         """
@@ -74,7 +77,17 @@ class PhysicalQuantity(PhysicalQuantityBase):
         u = Units.from_any(units)
         return cls(v, p, u, **kwargs)
 
-    def __init__(self, value:t_numeric, prefix:Prefix, units:Units) -> None:
+
+    @classmethod
+    def from_any(cls, value:t_PQSource) -> t_PQObj:
+        if isinstance(value, PhysicalQuantity):
+            return value.copy()
+        elif isinstance(value, str):
+            return cls.from_string(value)
+        else: # try from value... might work?
+            return cls.from_value(value)
+
+    def __init__(self, value:t_numeric, prefix:Prefix, units:t_UnitObj) -> None:
         """
         Use constructors from_value and from_string!
         """
@@ -164,6 +177,7 @@ class PhysicalQuantity(PhysicalQuantityBase):
             raise TypeError(f"Unable to divide - no units on other? Acting on [{other}] / [{self}]")
         else: # try as scalar? Assuming units..
             logger.warning(f"Assuming units for rdivision: {other}/{self}")
+            logger.warning(f"self units... {self.u}")
             nv, np = vp_from_number(other/(self.v*self.p))
             nu = 1/self.u
         return PhysicalQuantity(value=nv, prefix=np, units=nu) #type: ignore
@@ -200,8 +214,20 @@ class PhysicalQuantity(PhysicalQuantityBase):
     
     @value.setter
     def value(self, val):
-        self.p = Prefix.from_number(val)
-        self.v = val / self.p
+        self.v, self.p = vp_from_number(val)
+
+    @property
+    def units(self):
+        return self.u
+
+    @units.setter
+    def units(self, val: t_UnitsSource):
+        newunits = Units.from_any(val)
+        if not self.u.unitless:
+            convfunc = self.u.convert_to(newunits)
+            newval = convfunc(self.v*self.p)
+            self.v, self.p = vp_from_number(newval)
+        self.u = newunits    
 
     def as_base(self, **kwargs):
         """
@@ -518,9 +544,9 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
         elif ERROR_ON_UNITLESS_OPERATORS: # try as scalar? Assuming units..
             raise TypeError(f"Unable to divide - no units on other? Acting on [{other}] / [{self}]")
         else: # try as scalar? Assuming units..
-            logger.warning(f"Assuming units for division: {other} / {self}")
             nn = self.den.copy()*(other) #type: ignore
             nd = self.num.copy() #type: ignore
+            logger.warning(f"Inverting Units: self.u={self.u}")
             nu = 1/self.u
         return DependantPhysicalQuantity(num=nn, den=nd, units=nu, **varargs)
 
@@ -563,9 +589,8 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
 
         vn = polyeval(self.num, val)
         vd = polyeval(self.den, val)
-        nv, np = vp_from_number(vn/vd)
 
-        return PhysicalQuantity.from_value(value=nv, prefix=np, units=self.u.copy()) #type: ignore
+        return PhysicalQuantity.from_value(vn/vd, self.u.copy())
 
     @property
     def var0(self):

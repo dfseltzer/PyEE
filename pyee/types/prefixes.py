@@ -3,10 +3,9 @@ import logging
 import copy
 
 import numpy as np
-
-from typing import NewType
-
 from ..utilities import load_data_file
+
+type t_PrefixObj = Prefix
 
 logger = logging.getLogger(__name__)
 

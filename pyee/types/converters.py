@@ -3,11 +3,11 @@ import re
 
 from .units import Units
 from .aliases import t_numeric
-from .prefixes import Prefix
+from .prefixes import Prefix, t_PrefixObj
 
 from ..regex import re_number_and_prefix
 
-def vp_from_number(number: t_numeric) -> tuple[t_numeric, "Prefix"]:
+def vp_from_number(number: t_numeric) -> tuple[t_numeric, t_PrefixObj]:
     """
     Convert a number to a value an prefix
     """
@@ -34,7 +34,7 @@ def vpu_from_ustring(ustring : str) -> tuple[t_numeric, "Prefix", "Units"]:
         -- Include a space between prefix and units
         -- Any unit that the Unit class can parse will work
 
-    Returns: New physical quantity from string
+    Returns: [Value, Prefix, Unit]
     """
 
     parts = ustring.split(" ")

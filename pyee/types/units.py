@@ -22,14 +22,17 @@ import re
 import logging
 import copy
 
-from ..utilities import load_data_file
-from ..exceptions import UnitsMissmatchException
+from typing import Callable
 
-type t_UnitsSource = str | int | float | object
+from ..utilities import load_data_file
+from ..exceptions import UnitsMissmatchException, UnitsConversionException
+
+type t_UnitsSource = str | int | float | object | None
+type t_UnitObj = Units
     
 logger = logging.getLogger(__name__)
 
-def load_unit_context(context):
+def load_unit_context(context: str) -> dict:
     """
     Loads a set of units from a json file.  the filename to be loaded is
 
@@ -42,7 +45,8 @@ def load_unit_context(context):
     fname = f"SI_units_{context.lower()}"
     rdat = load_data_file(fname)
     subs = rdat.pop("_subs",dict())
-    cdat = {s: {"n":d["name"], "info":d["quantity"], "u":Units.from_string(d["base"])} for s, d in rdat.items()}
+    cdat = {s: {"n":d["name"], "info":d["quantity"], "u":Units.from_string(d["base"]), 
+                "c": d.get("conversions", dict())} for s, d in rdat.items()}
     cdat["_subs"] = {k: (Units.from_string(k, context=context), Units.from_string(v, context=context)) for k, v in subs.items()}
     return cdat
 
@@ -54,7 +58,7 @@ class Units(object):
     CONTEXTS = dict()
 
     @classmethod
-    def from_any(cls, other : t_UnitsSource) -> "Units":
+    def from_any(cls, other : t_UnitsSource) -> t_UnitObj:
         """
         Create a new Units class from either a string or an existing units instance.
         """
@@ -65,7 +69,7 @@ class Units(object):
                     obj = cls.from_string(other) # type: ignore
                 except (ValueError, TypeError):
                     logger.warning(f"units provided not an instance or a proper string... just using as is?: {other}")
-                    obj = cls(other)
+                    obj = cls(other) # type: ignore
             else: # is a unit, just use it
                 obj = other
         else: # return empty if none
@@ -73,7 +77,7 @@ class Units(object):
         return obj
 
     @classmethod
-    def from_string(cls, ustring : str, **kwargs) -> "Units":
+    def from_string(cls, ustring : str, **kwargs) -> t_UnitObj:
         """
         Creates a Unit object from a string representation.
 
@@ -87,7 +91,7 @@ class Units(object):
         __DEBUG = False
 
         if ustring == "" or ustring == "1":
-            return cls({}, **kwargs)
+            return cls(**kwargs)
 
         # convert all /(u^e.u^e) to /u^e/u^e
         def splitd(s):
@@ -230,6 +234,10 @@ class Units(object):
 
     def __rtruediv__(self, other):
         # we are denominator, other is numerator
+        if other == 1: # simple case... we are just inverting units...
+            udict_flipped = {k: -v for k, v in self.s.items()}
+            return Units(udict_flipped)
+
         try:  # get base data if exists
             s2 = other.s
         except AttributeError:  # if not, try and make a new units from it
@@ -272,7 +280,31 @@ class Units(object):
             raise e
         return s
 
-    def as_base(self, context : str | None = None) -> "Units":
+    def convert_to(self, newunits: t_UnitObj) -> Callable:
+        """
+        Tries to allow unit conversion.  Only really works on base units for now.
+        Returns a function that can be called on numbers to convert to the new units.
+        """
+
+        if self == newunits: # take care of easy case first...
+            return lambda x: x
+
+        if self.context not in self.CONTEXTS.keys(): # load new context if we do not have it already
+            Units.CONTEXTS[self.context] = load_unit_context(self.context)
+            logger.info(f"Loaded new units context: {self.context}")
+
+        selfinfo = self.CONTEXTS[self.context].get(str(self), None)
+        if selfinfo is None:
+            raise UnitsConversionException(self, newunits, 
+                                           notes="Initial units do not exist in context - not a basic unit?")
+        convfactors = selfinfo.get("c", dict()).get(str(newunits), None)
+        if convfactors is None:
+            raise UnitsConversionException(self, newunits, 
+                                           notes=f"Cant find a conversion factor... self info is {selfinfo}")            
+
+        return lambda x: convfactors[0] + convfactors[1]*x
+
+    def as_base(self, context : str | None = None) -> t_UnitObj:
         """
         Expand the units to base units as much as possible.  Uses the instances context
         if none is give.  If a new context is specified, then updates this units default
@@ -302,7 +334,7 @@ class Units(object):
     def copy(self) -> "Units":
         return self.__copy__()
 
-    def simplify(self, context : str | None = None) -> "Units":
+    def simplify(self, context : str | None = None) -> t_UnitObj:
         """
         Simplify the units as much as possible.  Uses the instances context
         if none is give.  If a new context is specified, then updates this units default
@@ -359,3 +391,6 @@ class Units(object):
         """
         return Units({s: -e for s, e in self.s.items() if e < 0})
 
+    @property
+    def unitless(self):
+        return len(self.s) == 0

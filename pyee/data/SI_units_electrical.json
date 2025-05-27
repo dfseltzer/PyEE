@@ -52,7 +52,18 @@
   "Hz": {
     "name": "hertz",
     "quantity": "frequency",
-    "base": "s^-1"
+    "base": "s^-1",
+    "conversions": {
+      "Rad": [0, 6.283185307179586476925287]
+    }
+  },
+  "Rad":{
+    "name": "Radians",
+    "quantity": "frequency",
+    "base": "s^-1",
+    "conversions": {
+      "Hz": [0, 0.1591549430918953357688837]
+    }
   },
   "VA": {
     "name": "volt-ampere",

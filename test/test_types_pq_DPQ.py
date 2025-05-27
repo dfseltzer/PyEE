@@ -24,12 +24,12 @@ class TestCase_create(unittest.TestCase):
         self.assertRaises(ValueError, z1)
         z1.var0 = 5
         v1 = z1()
-        self.assertEquals(v1, 6)
+        self.assertEqual(v1, 6)
 
     def test_call_scalar(self):
         z1 = self.DPQ(num=[1, 1], den=[1], var_units="kg")
         v2 = z1(7)
-        self.assertEquals(v2, 8)
+        self.assertEqual(v2, 8)
 
     def test_call_array(self):
         z1 = self.DPQ(num=[1, 1], den=[1], var_units="kg")
@@ -43,15 +43,15 @@ class TestCase_create(unittest.TestCase):
         
         z3 = z1*z2
 
-        self.assertEquals(z3(1).value, 4)
-        self.assertEquals(z3.u, "kg/s")
+        self.assertEqual(z3(1).value, 4)
+        self.assertEqual(z3.u, "kg/s")
 
     def test_multiply_scalar(self):
         z1 = self.DPQ(num=[1, 1], den=[1], units="kg", var_units="s")
         z2 = z1*5
 
-        self.assertEquals(z2(1).value, 10)
-        self.assertEquals(z2.u, "kg")
+        self.assertEqual(z2(1).value, 10)
+        self.assertEqual(z2.u, "kg")
 
     def test_subtract(self):
         pass
