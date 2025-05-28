@@ -4,6 +4,8 @@ pushd %~dp0
 
 REM Command file for Sphinx documentation
 
+echo "PATH: " %PATH%
+
 if "%SPHINXBUILD%" == "" (
 	set SPHINXBUILD=sphinx-build
 )

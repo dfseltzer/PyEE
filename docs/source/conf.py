@@ -10,7 +10,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
-print(sys.path)
+print("Path:\n" + "\n\t".join(sys.path))
 
 import pyee
 

@@ -26,7 +26,8 @@
                 "html"
             ],
             "options": {
-                "cwd": "${workspaceFolder}/docs"
+                "cwd": "${workspaceFolder}/docs",
+                "env": {"PATH": "${workspaceFolder}/.venv/bin:${env:PATH}"}
             },
             "problemMatcher": [
                 "$go"
