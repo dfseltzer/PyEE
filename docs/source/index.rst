@@ -23,7 +23,7 @@ Attempting to write pascals as *kg/m.s^2* is incorrect, as *s^2* is intepreted i
 **Value Strings**
 These strings use the following formatting
 
-``VALUE[PREFIX][ UNIT]``
+   ``VALUE[PREFIX][ UNIT]``
 
 VALUE
    Any real number that python can interpret.  Must not have spaces.

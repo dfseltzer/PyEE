@@ -12,7 +12,6 @@ from .types.prefixes import Prefix, t_PrefixObj
 from .types.units import t_UnitObj
 from .types.impedance import Impedance
 from .types.aliases import t_numeric
-
 from .types.converters import vp_from_number
 
 from .exceptions import UnitsMissmatchException

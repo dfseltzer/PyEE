@@ -2,6 +2,7 @@ Passives
 --------
 
 .. automodule:: pyee.passives
+   :no-index:
 
 .. autosummary::
    :toctree:
