@@ -48,7 +48,10 @@ Some examples of acceptable value strings include
 Subpackages are listed below...
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
+
+   pyee.math
+   pyee.passives
 
 
 Math

@@ -1,14 +1,17 @@
-﻿pyee.math
-=========
+﻿Math
+====
 
 .. automodule:: pyee.math
 
-   
 .. rubric:: Modules
 
 .. autosummary::
-   :toctree:
    :recursive:
-   
 
    polynomials
+
+   
+.. toctree::
+   :maxdepth: 2
+
+   pyee.math.polynomials

@@ -10,9 +10,8 @@ Passives
 
 Functions
 ^^^^^^^^^
-.. automodule:: pyee.passives
-   :no-index:
-   :members: set_error_on_z_transform
+.. autofunction:: 
+   pyee.passives.set_error_on_z_transform
 
 Classes
 ^^^^^^^
@@ -23,16 +22,20 @@ Classes
    :inherited-members:
    
 .. autoclass:: pyee.passives.Capacitor
-.. autoclass:: pyee.passives.Inductor
-
-
-   :members: Resistor, Capacitor, Inductor
+   :members:
    :show-inheritance:
+   :inherited-members:
+
+.. autoclass:: pyee.passives.Inductor
+   :members:
+   :show-inheritance:
+   :inherited-members:
 
 
 Abstract Classes
 ^^^^^^^^^^^^^^^^
 
-.. automodule:: pyee.passives
-   :members: PassiveComponent
+.. autoclass:: pyee.passives.PassiveComponent
+   :members:
    :show-inheritance:
+   :inherited-members:

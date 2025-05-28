@@ -1,5 +1,5 @@
-pyee.math.polynomials
-=====================
+﻿Polynomials
+===========
 
 .. automodule:: pyee.math.polynomials
 
