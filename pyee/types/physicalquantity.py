@@ -77,7 +77,6 @@ class PhysicalQuantity(PhysicalQuantityBase):
         u = Units.from_any(units)
         return cls(v, p, u, **kwargs)
 
-
     @classmethod
     def from_any(cls, value:t_PQSource) -> t_PQObj:
         if isinstance(value, PhysicalQuantity):

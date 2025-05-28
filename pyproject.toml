@@ -11,8 +11,9 @@ description = "Python library for electrical engineering"
 license-files = ["LICENSE"]
 keywords = ["electrical", "EE", "math", "symbolic", "engineering", "power"]
 dynamic = ["version", "readme"]
-requires-python = ">= 3.11"
-dependencies = ["sphinx==8.2.3"]
+requires-python = ">= 3.13"
+dependencies = ["sphinx==8.2.3",
+                "numpy"]
 
 [tool.setuptools]
 packages = ["pyee"]
