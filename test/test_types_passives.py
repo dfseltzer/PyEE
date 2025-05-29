@@ -17,7 +17,7 @@ class TestCase_create(unittest.TestCase):
 
     def test_create_string(self):
         L1 = self.Inductor("1m")
-        L2 = self.Inductor("1mH")
+        L2 = self.Inductor("1m H")
 
         self.assertEqual(L1.v, 1.0)
         self.assertEqual(L1.p.s, "m")

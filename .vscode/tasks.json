@@ -1,8 +1,7 @@
 {
     "version": "2.0.0",
     "tasks": [
-        {
-            "label": "sphinx-build: standard",
+        {   "label": "docs: sphinx-build html",
             "type": "shell",
             "command": "sphinx-build",
             "args": [
@@ -17,8 +16,7 @@
                 "$go"
             ]
         },
-    {
-            "label": "sphinx-build: make clean html",
+        {   "label": "docs: shpinx clean html",
             "type": "shell",
             "command": "make",
             "args": [
@@ -32,6 +30,6 @@
             "problemMatcher": [
                 "$go"
             ]
-        }
+        },
     ]
 } 

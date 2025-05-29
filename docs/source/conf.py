@@ -33,9 +33,9 @@ extensions = [
 templates_path = ['_templates']
 exclude_patterns = []
 
-
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'classic'
 html_static_path = ['custom_static']
+html_sidebars = { '**': ['globaltoc.html', 'searchbox.html'] }
