@@ -11,5 +11,5 @@ u_v = Units.from_string("V")
 u_a = Units.from_string("A")
 
 # simplify is best from base units
-print(f"Ohms: {u_v/u_a} = {(u_v/u_a).as_base()} = {(u_v/u_a).as_base().simplify()})")
+print(f"Ohms: {u_v/u_a} = {(u_v/u_a).as_base()} = {(u_v/u_a).as_base().simplify()}")
 

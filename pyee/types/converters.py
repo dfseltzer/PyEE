@@ -1,11 +1,11 @@
 
 import re
 
-from .units import Units
-from .aliases import t_numeric
-from .prefixes import Prefix, t_PrefixObj
+from pyee.types.units import Units
+from pyee.types.aliases import t_numeric
+from pyee.types.prefixes import Prefix, t_PrefixObj
 
-from ..regex import re_number_and_prefix
+from pyee.regex import re_number_and_prefix
 
 def vp_from_number(number: t_numeric) -> tuple[t_numeric, t_PrefixObj]:
     """

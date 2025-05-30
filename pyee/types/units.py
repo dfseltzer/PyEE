@@ -24,8 +24,8 @@ import copy
 
 from typing import Callable
 
-from ..utilities import load_data_file
-from ..exceptions import UnitsMissmatchException, UnitsConversionException
+from pyee.utilities import load_data_file
+from pyee.exceptions import UnitsMissmatchException, UnitsConversionException
 
 type t_UnitsSource = str | int | float | object | None
 type t_UnitObj = Units

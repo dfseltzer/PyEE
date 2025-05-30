@@ -3,7 +3,8 @@ import logging
 import copy
 
 import numpy as np
-from ..utilities import load_data_file
+from pyee.utilities import load_data_file
+from pyee.types.aliases import t_numeric
 
 type t_PrefixObj = Prefix
 
@@ -113,40 +114,40 @@ class Prefix(object):
 
     def __str__(self):
         try: # On success, array, on fial, single value
-            nvals = len(self.s) # type: ignore
+            nvals = len(self.s)
         except TypeError:
             return self.s
         
         if nvals < 5:
-            return "["+", ".join([f"{v}" for v in self.s])+"]"  # type: ignore
+            return "["+", ".join([f"{v}" for v in self.s])+"]"
         else:
-            return f"[{self.s[0]},... + {nvals-1} others]"  # type: ignore
+            return f"[{self.s[0]},... + {nvals-1} others]"
 
-    def __mul__(self, other):
+    def __mul__(self, other) -> "t_PrefixObj | t_numeric":
         if isinstance(other, Prefix):
             return Prefix.from_number(self.f * other.f)
         else:
             return self.f * other
 
-    def __rmul__(self, other):
+    def __rmul__(self, other) -> "t_PrefixObj | t_numeric":
         if isinstance(other, Prefix):
             return Prefix.from_number(other.f * self.f)
         else:
             return other * self.f
 
-    def __div__(self, other):
+    def __div__(self, other) -> "t_PrefixObj | t_numeric":
         return self.__truediv__(other)
 
-    def __rdiv__(self, other):
+    def __rdiv__(self, other) -> "t_PrefixObj | t_numeric":
         return self.__rtruediv__(other)
 
-    def __truediv__(self, other):
+    def __truediv__(self, other) -> "t_PrefixObj | t_numeric":
         if isinstance(other, Prefix):
             return Prefix.from_number(self.f / other.f)
         else:
             return self.f / other
 
-    def __rtruediv__(self, other):
+    def __rtruediv__(self, other) -> "t_PrefixObj | t_numeric":
         if isinstance(other, Prefix):
             return Prefix.from_number(other.f / self.f)
         
@@ -154,7 +155,7 @@ class Prefix(object):
 
         return other / self.f
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         try:  # if both have a factor, return that equality
             return self.f == other.f
         except AttributeError:
@@ -167,8 +168,8 @@ class Prefix(object):
 
         return self.s == other # default to checking by symbol...
 
-    def __neq__(self, other):
+    def __neq__(self, other) -> bool:
         return not self.__eq__(other)
 
-    def copy(self):
+    def copy(self) -> t_PrefixObj:
         return self.__copy__()

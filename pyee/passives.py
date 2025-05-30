@@ -7,14 +7,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 from abc import ABCMeta, abstractmethod
-from .types.physicalquantity import PhysicalQuantity
-from .types.prefixes import Prefix, t_PrefixObj
-from .types.units import t_UnitObj
-from .types.impedance import Impedance
-from .types.aliases import t_numeric
-from .types.converters import vp_from_number
+from pyee.types.physicalquantity import PhysicalQuantity
+from pyee.types.prefixes import t_PrefixObj
+from pyee.types.units import Units, t_UnitObj
+from pyee.types.impedance import Impedance
+from pyee.types.aliases import t_numeric
+from pyee.types.converters import vp_from_number, vpu_from_ustring
 
-from .exceptions import UnitsMissmatchException
+from pyee.exceptions import UnitsMissmatchException
 
 FREQUENCY_UNITS = "Hz"
 ERROR_ON_Z_TRANSFORM = True
@@ -29,12 +29,30 @@ def set_error_on_z_transform(val):
     ERROR_ON_Z_TRANSFORM = bool(val)
 
 class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
-    def __init__(self, value:t_numeric, prefix:t_PrefixObj | None, units:t_UnitObj, *args, **kwargs) -> None:
-        if prefix is None:
-            v, p = vp_from_number(value)
-        else:
-            v, p = Prefix.rebalance(value, prefix)
-        super().__init__(v, p, units, *args, **kwargs)
+    @classmethod
+    def from_string(cls, ustring: str, *args, **kwargs):
+        """
+        Create a PassiveComponent from a string
+        :param ustring: string to parse
+        :return: PassiveComponent instance
+        """
+        v, p, u = vpu_from_ustring(ustring)
+        return cls(v, p, u, *args, **kwargs)
+
+    @classmethod
+    def from_value(cls, value: t_numeric, *args, **kwargs):
+        """
+        Create a PassiveComponent from a numeric value
+        :param value: numeric value to use
+        :return: PassiveComponent instance
+        """
+        v, p = vp_from_number(value)
+        return cls(v, p, cls._UNITS, *args, **kwargs)
+
+    def __init__(self, value:t_numeric, prefix:t_PrefixObj, units:t_UnitObj, *args, **kwargs) -> None:
+        if (self.default_units is not None) and (units != self.default_units):
+            raise UnitsMissmatchException(self.default_units, units, "init", notes="Creating new PassiveComponent with incorrect units...")
+        super().__init__(value, prefix, units, *args, **kwargs)
 
     def __add__(self, value):
         try:
@@ -63,9 +81,9 @@ class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
     def __or__(self, other):
         try:
             nv = self * other / (self + other)
-            return {"Ohm": lambda o: Resistor(value=o.v*o.p),
-                    "F": lambda o: Capacitor(value=o.v*o.p),
-                    "L": lambda o: Inductor(value=o.v*o.p)}.get(str(nv.u), lambda o: o)(nv)
+            return {"Ohm": lambda o: Resistor.from_value(value=o.v*o.p),
+                    "F": lambda o: Capacitor.from_value(value=o.v*o.p),
+                    "L": lambda o: Inductor.from_value(value=o.v*o.p)}.get(str(nv.u), lambda o: o)(nv)
         except (TypeError, AttributeError) as _:
             logger.warning(f"Unable to parallel natively - converting to impedance... {self} and {other}")
         
@@ -77,9 +95,9 @@ class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
         #TODO if units are the same on self and other, return correct passive type if possible
         try:
             nv = other * self / (other + self)
-            return {"Ohm": lambda o: Resistor(value=o.v * o.p),
-                    "F": lambda o: Capacitor(value=o.v * o.p),
-                    "L": lambda o: Inductor(value=o.v * o.p)}.get(str(nv.u), lambda o: o)(nv)
+            return {"Ohm": lambda o: Resistor.from_value(value=o.v * o.p),
+                    "F": lambda o: Capacitor.from_value(value=o.v * o.p),
+                    "L": lambda o: Inductor.from_value(value=o.v * o.p)}.get(str(nv.u), lambda o: o)(nv)
         except (TypeError, AttributeError) as _:
             logger.warning(f"Unable to parallel natively - converting to impedance... {other} and {self}")
         
@@ -120,34 +138,45 @@ class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
         """
         pass
 
+    @property
+    @abstractmethod
+    def default_units(self) -> t_UnitObj:
+        """
+        Default units for new instances.
+        """
+        pass
+
 class Resistor(PassiveComponent):
-    def __init__(self, value, **kwargs):
-        p = kwargs.pop("prefix",None)
-        u = kwargs.pop("units","Ohm")
-        super().__init__(value=value, prefix=p, units=u, **kwargs)
+    _UNITS = Units.from_string("Ohm")
 
     @property
     def Z(self):
         return Impedance(num=[self.v*self.p],den=[1], frequency_units=FREQUENCY_UNITS)
+    
+    @property
+    def default_units(self) -> t_UnitObj:
+        return self._UNITS
 
 class Inductor(PassiveComponent):
-    def __init__(self, value, **kwargs):
-        p = kwargs.pop("prefix",None)
-        u = kwargs.pop("units","H")
-        super().__init__(value=value, prefix=p, units=u, **kwargs)
+    _UNITS = Units.from_string("H")
 
     @property
     def Z(self):
         return Impedance(num=[0, self.v * self.p], den=[1], frequency_units=FREQUENCY_UNITS)
+    
+    @property
+    def default_units(self) -> t_UnitObj:
+        return self._UNITS
 
 class Capacitor(PassiveComponent):
-    def __init__(self, value, **kwargs):
-        p = kwargs.pop("prefix",None)
-        u = kwargs.pop("units","F")
-        super().__init__(value=value, prefix=p, units=u, **kwargs)
+    _UNITS = Units.from_string("F")
 
     @property
     def Z(self):
         return Impedance(num=[1],den=[0, self.v*self.p], frequency_units=FREQUENCY_UNITS)
+    
+    @property
+    def default_units(self) -> t_UnitObj:
+        return self._UNITS
 
 

@@ -10,14 +10,14 @@ class TestCase_create(unittest.TestCase):
         cls.Resistor = Resistor
 
     def test_create_numeric(self):
-        L1 = self.Inductor(0.001)
+        L1 = self.Inductor.from_value(0.001)
 
         self.assertEqual(L1.v, 1.0)
         self.assertEqual(L1.p.s, "m")
 
     def test_create_string(self):
-        L1 = self.Inductor("1m")
-        L2 = self.Inductor("1m H")
+        L1 = self.Inductor.from_string("1m")
+        L2 = self.Inductor.from_string("1m H")
 
         self.assertEqual(L1.v, 1.0)
         self.assertEqual(L1.p.s, "m")

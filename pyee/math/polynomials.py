@@ -2,6 +2,7 @@
 Polynomial helpers.  Mostly wrappers on Numpy functions with some added help to make it simpler.
 """
 
+from pyee.types.aliases import t_numeric, t_numericArray
 import numpy as np
 
 def polyadd(c1, c2):
@@ -30,7 +31,7 @@ def polysub(c1, c2):
 
     return eq_c1 - eq_c2
 
-def polyeval(c, x):
+def polyeval(c: t_numericArray, x: t_numericArray | t_numeric) -> t_numericArray | t_numeric:
     """
     Given a polynomial with ciefficients "c", evaluate at points "x"
     

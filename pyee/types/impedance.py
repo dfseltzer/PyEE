@@ -9,10 +9,10 @@ logger = logging.getLogger(__name__)
 
 import numpy as np
 
-from .physicalquantity import DependantPhysicalQuantity
+from pyee.types.physicalquantity import DependantPhysicalQuantity
 
-from .. import GLOBAL_TOLERANCE
-from ..exceptions import UnitsMissmatchException
+from pyee import GLOBAL_TOLERANCE
+from pyee.exceptions import UnitsMissmatchException
 
 class Impedance(DependantPhysicalQuantity):
     """
@@ -53,7 +53,7 @@ class Impedance(DependantPhysicalQuantity):
         # remove common zero roots if they exist
         numzeros = np.argmin(self.num <= self.tol)
         denzeros = np.argmin(self.den <= self.tol)
-        commonzeros = min(numzeros,denzeros)
+        commonzeros = min(numzeros, denzeros) # type: ignore
 
         if commonzeros:
             logger.info(f"Pass 0: Found [{commonzeros}] common zero root(s), removing.")

@@ -10,24 +10,24 @@ import copy
 from abc import ABC
 from abc import abstractmethod
 
-from .units import Units, t_UnitObj, t_UnitsSource
+from pyee.types.units import Units, t_UnitObj, t_UnitsSource
 
-from .prefixes import Prefix
-from .converters import vpu_from_ustring
-from .converters import vp_from_number
+from pyee.types.prefixes import t_PrefixObj
+from pyee.types.converters import vpu_from_ustring
+from pyee.types.converters import vp_from_number
 
-from .aliases import t_numeric
-from .aliases import t_listTuple
+from pyee.types.aliases import t_numeric
+from pyee.types.aliases import t_listTuple
 
-from .. import GLOBAL_TOLERANCE
+from pyee import GLOBAL_TOLERANCE
 
-from ..math.polynomials import polyeval
-from ..math.polynomials import polymul
-from ..math.polynomials import polyadd
-from ..math.polynomials import polyprint
-from ..math.polynomials import polysub
+from pyee.math.polynomials import polyeval
+from pyee.math.polynomials import polymul
+from pyee.math.polynomials import polyadd
+from pyee.math.polynomials import polyprint
+from pyee.math.polynomials import polysub
 
-from ..exceptions import UnitsMissmatchException
+from pyee.exceptions import UnitsMissmatchException
 
 type t_PQObj = PhysicalQuantity
 type t_PQSource = PhysicalQuantity | t_numeric | str
@@ -68,7 +68,7 @@ class PhysicalQuantity(PhysicalQuantityBase):
         return cls(v, p, u, **kwargs)
 
     @classmethod
-    def from_value(cls, value:t_numeric, units:t_UnitsSource = None, **kwargs) -> t_PQObj:
+    def from_value(cls, value:t_numeric , units:t_UnitObj, **kwargs) -> t_PQObj:
         """
         Create a new Physical Quantity from a value and optional unit.
         """
@@ -86,7 +86,7 @@ class PhysicalQuantity(PhysicalQuantityBase):
         else: # try from value... might work?
             return cls.from_value(value)
 
-    def __init__(self, value:t_numeric, prefix:Prefix, units:t_UnitObj) -> None:
+    def __init__(self, value:t_numeric, prefix:t_PrefixObj, units:t_UnitObj) -> None:
         """
         Use constructors from_value and from_string!
         """
@@ -106,7 +106,7 @@ class PhysicalQuantity(PhysicalQuantityBase):
 
     def __mul__(self, other):
         if isinstance(other, PhysicalQuantity):
-            nv, np = vp_from_number(self.v*self.p*other.v*other.p)
+            nv, np = vp_from_number(self.v*self.p.f*other.v*other.p.f)
             nu = self.u*other.u
         elif ERROR_ON_UNITLESS_OPERATORS: # try as scalar? Assuming units..
             raise TypeError(f"Unable to multiply - no units on other? Acting on [{self}] * [{other}]")
@@ -156,8 +156,8 @@ class PhysicalQuantity(PhysicalQuantityBase):
 
     def __truediv__(self, other):
         if isinstance(other, PhysicalQuantity):
-            if self.u != other.u: raise UnitsMissmatchException(u1=self.u, u2=other.u, operation="div")
-            nv, np = vp_from_number(self.v*self.p/(other.v*other.p)) #type: ignore
+            #if self.u != other.u: raise UnitsMissmatchException(u1=self.u, u2=other.u, operation="div")
+            nv, np = vp_from_number(self.v*self.p.f/(other.v*other.p.f))
             nu = self.u/other.u
         elif ERROR_ON_UNITLESS_OPERATORS: # try as scalar? Assuming units..
             raise TypeError(f"Unable to divide - no units on other? Acting on [{self}] / [{other}]")
@@ -165,12 +165,12 @@ class PhysicalQuantity(PhysicalQuantityBase):
             logger.warning(f"Assuming units for division: {self}/{other}")
             nv, np = vp_from_number((self.v*self.p)/other)
             nu = self.u
-        return PhysicalQuantity(value=nv, prefix=np, units=nu) #type: ignore
+        return PhysicalQuantity(value=nv, prefix=np, units=nu)
 
     def __rtruediv__(self, other):
         if isinstance(other, PhysicalQuantity):
-            if self.u != other.u: raise UnitsMissmatchException(u1=self.u, u2=other.u, operation="rdiv")
-            nv, np = vp_from_number(other.v*other.p/(self.v*self.p)) #type: ignore
+            #if self.u != other.u: raise UnitsMissmatchException(u1=self.u, u2=other.u, operation="rdiv")
+            nv, np = vp_from_number(other.v*other.p.f/(self.v*self.p.f))
             nu = other.u/self.u
         elif ERROR_ON_UNITLESS_OPERATORS: # try as scalar? Assuming units..
             raise TypeError(f"Unable to divide - no units on other? Acting on [{other}] / [{self}]")
@@ -179,7 +179,7 @@ class PhysicalQuantity(PhysicalQuantityBase):
             logger.warning(f"self units... {self.u}")
             nv, np = vp_from_number(other/(self.v*self.p))
             nu = 1/self.u
-        return PhysicalQuantity(value=nv, prefix=np, units=nu) #type: ignore
+        return PhysicalQuantity(value=nv, prefix=np, units=nu)
 
     def __div__(self, other):
         return self.__truediv__(other)
@@ -274,8 +274,8 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
         raise NotImplementedError(f"Not done yet... cant turn {ustring} into dependant.  Write some code maybe?")
     
     @classmethod
-    def from_value(cls, num : t_listTuple | None, 
-                   den : t_listTuple | None = None, 
+    def from_value(cls, num : t_listTuple | np.ndarray | None, 
+                   den : t_listTuple | np.ndarray | None = None, 
                    units : t_UnitsSource = None, 
                    var0 : "PhysicalQuantity | t_numeric | None" = None, 
                    var_units=None, 
@@ -297,8 +297,8 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
                    var0=var0, var_units=vu,
                    **kwargs)
 
-    def __init__(self, num : t_listTuple | None = None, 
-                 den: t_listTuple | None = None, 
+    def __init__(self, num : t_listTuple | np.ndarray | None = None, 
+                 den: t_listTuple | np.ndarray | None = None, 
                  units : t_UnitsSource | None = None, 
                  var0: t_numeric | PhysicalQuantity | None=None, 
                  var_units : t_UnitsSource| None=None, 
@@ -361,14 +361,14 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
             nd = polymul(self.den, other.den)
             nu = self.u * other.u
         elif isinstance(other, PhysicalQuantity):
-            nn = self.num*other.v*other.p #type: ignore
-            nd = self.den.copy() #type: ignore
+            nn = self.num*other.v*other.p.f
+            nd = self.den.copy()
             nu = self.u * other.u
         elif ERROR_ON_UNITLESS_OPERATORS: # try as scalar? Assuming units..
             raise TypeError(f"Unable to multiply - no units on other? Acting on [{self}] * [{other}]")
         else: #try scalar multiply
-            nn = self.num.copy()*other  #type: ignore
-            nd = self.den.copy()  #type: ignore
+            nn = self.num.copy()*other
+            nd = self.den.copy()
             nu = self.u.copy() # do we need the copy?
         return DependantPhysicalQuantity(num=nn, den=nd, units=nu, **varargs)
 
@@ -382,14 +382,14 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
             nd = polymul(self.den, other.den)
             nu = self.u * other.u
         elif isinstance(other, PhysicalQuantity):
-            nn = self.num*other.v*other.p #type: ignore
-            nd = self.den.copy() #type: ignore
+            nn = self.num*other.v*other.p.f
+            nd = self.den.copy()
             nu = self.u * other.u
         elif ERROR_ON_UNITLESS_OPERATORS: # try as scalar? Assuming units..
             raise TypeError(f"Unable to multiply - no units on other? Acting on [{other}] * [{self}]")
         else: #try scalar multiply
-            nn = self.num.copy()*other  #type: ignore
-            nd = self.den.copy()  #type: ignore
+            nn = self.num.copy()*other
+            nd = self.den.copy()
             nu = self.u.copy() # do we need the copy?
         return DependantPhysicalQuantity(num=nn, den=nd, units=nu, **varargs)
 
@@ -509,12 +509,12 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
         varargs = {"var0": None if self._var0 is None else self._var0,
                    "var_units": None if self._var0 is None else self._var0.u.copy()}
         if isinstance(other, DependantPhysicalQuantity):
-            if self.u != other.u: raise UnitsMissmatchException(u1=self.u, u2=other.u, operation="div")
+            #if self.u != other.u: raise UnitsMissmatchException(u1=self.u, u2=other.u, operation="div")
             nn = polymul(self.num, other.den)
             nd = polymul(self.den, other.num)
             nu = self.u/other.u
         elif isinstance(other, PhysicalQuantity):
-            if self.u != other.u: raise UnitsMissmatchException(u1=self.u, u2=other.u, operation="div")
+            #if self.u != other.u: raise UnitsMissmatchException(u1=self.u, u2=other.u, operation="div")
             nn = self.num.copy() #type: ignore
             nd = self.den*(other.v*other.p)
             nu = self.u/other.u
@@ -580,7 +580,7 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
                 raise TypeError(f"Unable to call - unknown variable units (got {var}). Set var0 to something!")
             else:
                 logger.warning(f"unable to check units on call: no var0(={self.var0}) set? got {var}")
-            val = var.v*var.p
+            val = var.v*var.p.f
         elif ERROR_ON_UNITLESS_OPERATORS:
                 raise TypeError(f"Unable to call - unknown variable units (got {var}). Set var0 to something!")
         else: # assume scalar and try it...
@@ -589,7 +589,8 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
         vn = polyeval(self.num, val)
         vd = polyeval(self.den, val)
 
-        return PhysicalQuantity.from_value(vn/vd, self.u.copy())
+        # currently should fail if vn or vd have more than one element... ignore types trying to tell us that
+        return PhysicalQuantity.from_value(vn/vd, self.u.copy()) #type: ignore
 
     @property
     def var0(self):
