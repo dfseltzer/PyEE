@@ -24,12 +24,13 @@ import copy
 
 from typing import Callable
 
+from pyee.regex import re_ustring_den_group, re_ustring_non_exp_sets, re_ustring_single_den
 from pyee.utilities import load_data_file
 from pyee.exceptions import UnitsMissmatchException, UnitsConversionException
 
-type t_UnitsSource = str | int | float | object | None
 type t_UnitObj = Units
-    
+type t_UnitsSource = str | dict | t_UnitObj | None
+
 logger = logging.getLogger(__name__)
 
 def load_unit_context(context: str) -> dict:
@@ -51,11 +52,14 @@ def load_unit_context(context: str) -> dict:
     return cdat
 
 class Units(object):
-    re_den_group = re.compile(r"/\(([a-zA-Z]+(?:\^[+-]?\d+)?|1)?(?:\.+[a-zA-Z]+(?:\^[+-]?\d+)?)*\)")
-    re_single_den = re.compile(r"/\.*(?P<u>[a-zA-Z]+)(?P<e>\^[+-]?\d+)?\.*")
-    re_non_exp_sets = re.compile(r"(?:[a-zA-Z]+(?=\.))|(?:[a-zA-Z]+$)")
-
     CONTEXTS = dict()
+
+    @classmethod
+    def create_unitless(cls, **kwargs) -> t_UnitObj:
+        """
+        Returns a unitless class object
+        """
+        return cls(dict(), **kwargs)
 
     @classmethod
     def from_any(cls, other : t_UnitsSource) -> t_UnitObj:
@@ -63,18 +67,24 @@ class Units(object):
         Create a new Units class from either a string or an existing units instance.
         """
 
-        if other is not None:
-            if not isinstance(other, cls):
-                try:
-                    obj = cls.from_string(other) # type: ignore
-                except (ValueError, TypeError):
-                    logger.warning(f"units provided not an instance or a proper string... just using as is?: {other}")
-                    obj = cls(other) # type: ignore
-            else: # is a unit, just use it
-                obj = other
-        else: # return empty if none
-            obj = cls()
-        return obj
+        if other is None: # return empty unit (unitless)
+            return cls.create_unitless()
+        elif isinstance(other, cls): # new unit from existing unit... just return it.
+            return other
+        
+        try: # maybe string like enough?
+            return cls.from_string(other) #type: ignore
+        except (ValueError, TypeError):
+            pass        
+
+        try: # dictionary like?
+            len(other) #type: ignore
+            other.keys() #type: ignore
+            other.items() #type: ignore
+            return cls(other) #type: ignore
+        except (ValueError, TypeError, AttributeError) as e:
+            logger.error(f"Unable to make new unit from {other}")
+            raise e            
 
     @classmethod
     def from_string(cls, ustring : str, **kwargs) -> t_UnitObj:
@@ -91,14 +101,14 @@ class Units(object):
         __DEBUG = False
 
         if ustring == "" or ustring == "1":
-            return cls(**kwargs)
+            return cls.create_unitless(**kwargs)
 
         # convert all /(u^e.u^e) to /u^e/u^e
         def splitd(s):
             d_subs = s.group(0).replace("(","").replace(")","").replace(".","/")
             return d_subs
 
-        u_splitd = cls.re_den_group.sub(splitd, ustring)
+        u_splitd = re_ustring_den_group.sub(splitd, ustring)
         if __DEBUG: logger.error(f"u_splitd: {u_splitd}")
 
         # remove all /1 instances, remove all double //
@@ -111,7 +121,7 @@ class Units(object):
             e = "-1" if e_neg is None else str(-int(e_neg[1:]))
             return "."+s.group("u")+"^"+e+"."
 
-        u_flipped = cls.re_single_den.sub(flipe, u_nosingles)
+        u_flipped = re_ustring_single_den.sub(flipe, u_nosingles)
         if __DEBUG: logger.error(f"u_flipped: {u_flipped}")
 
         # clean extra dots
@@ -123,7 +133,7 @@ class Units(object):
         def addone(s):
             return s.group(0)+"^1"
 
-        u_padded = cls.re_non_exp_sets.sub(addone, u_strip).strip(".")
+        u_padded = re_ustring_non_exp_sets.sub(addone, u_strip).strip(".")
         if __DEBUG: logger.error(f"u_padded: {u_padded}")
 
 
@@ -142,7 +152,7 @@ class Units(object):
 
         return obj
 
-    def __init__(self, s : dict | None = None, context : str = "Electrical") -> None:
+    def __init__(self, s : dict, context : str = "Electrical") -> None:
         """
         Units class.  Should be called from one of the .from_* class methods
         in most cases.  If called directly, returns a unitless unit.
@@ -161,11 +171,11 @@ class Units(object):
         Unitless instances have s=={}
         """
         super().__init__()
-        self.s = dict() if s is None else s
+        self.s = s
         self.context = context
 
     def __copy__(self):
-        return copy.deepcopy(self)
+        return Units(s=self.s.copy())
 
     def __repr__(self):
         p1 = sorted([f"{s}^{e}" if e > 1 else s for s, e in self.s.items() if e > 0])
@@ -256,29 +266,6 @@ class Units(object):
 
     def __ne__(self, other):
         return not self.__eq__(other)
-
-    @staticmethod
-    def __get_s_from_other(other):
-        """
-        Internal method. Attempts to get a units-exponents dictionary from an object.
-        This should be called after an initial check for an "s" attribute is attempted.
-
-        Used mainly as a helper for overloaded math functions.
-
-        :return: a dictionary if possible.
-        :raises InputError: if cannot convert a string to a units class
-        :raises Exception: if something else happens, just passes it along.
-        """
-        try:
-            ou = Units.from_string(other)
-            s = ou.s
-        except ValueError as e:
-            logging.exception(f"Unable to convert input {other} to a unit for multiplication.")
-            raise e
-        except Exception as e:
-            logging.exception(f"Unknown error during convert... {e}")
-            raise e
-        return s
 
     def convert_to(self, newunits: t_UnitObj) -> Callable:
         """
