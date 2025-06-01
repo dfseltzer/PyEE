@@ -1,53 +1,39 @@
 import unittest
+from pyee.types.prefixes import Prefix
 
 class TestCase_from_string(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        import logging
-        from pyee.types.prefixes import Prefix
-        cls.Prefix = Prefix
+    def test_from_string_symbol(self):
+        test_sets = {"k": 1000}
+        for pstring, value in test_sets.items():
+            p = Prefix.from_string(pstring)
+            self.assertEqual(p.f, value, msg=f"Testing for {pstring} = {value}")
 
-    def test_from_string(self):
-        p = self.Prefix("k")
-        self.assertEqual(p.f, 1000)
-        p = self.Prefix.from_name("kilo")
-        self.assertEqual(p.f, 1000)
+    def test_from_string_name(self):
+        test_sets = {"kilo": 1000}
+        for pstring, value in test_sets.items():
+            p = Prefix.from_string(pstring)
+            self.assertEqual(p.f, value, msg=f"Testing for {pstring} = {value}")
 
-    def test_from_number(self):
-        p = self.Prefix.from_number(0.000015)
-        self.assertEqual(p.s, "u")
-
-        p = self.Prefix.from_number(0.0015)
-        self.assertEqual(p.s, "m")
-
-        p = self.Prefix.from_number(0.15)
-        self.assertEqual(p.s, "m")
-
-        p = self.Prefix.from_number(15)
-        self.assertEqual(p.s, "")
-
-        p = self.Prefix.from_number(134.3)
-        self.assertEqual(p.s, "")
-
-        p = self.Prefix.from_number(1215.2)
-        self.assertEqual(p.s, "k")
-
-    def test_from_number_edges(self):
-        p = self.Prefix.from_number(999)
-        self.assertEqual(p.s, "")
-
-        p = self.Prefix.from_number(1000)
-        self.assertEqual(p.s, "k")
-
-        p = self.Prefix.from_number(1001)
-        self.assertEqual(p.s, "k")
 
 class TestCase_from_number(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        from pyee.types.units import Prefix
-        cls.Prefix = Prefix
+    def test_from_number(self):
+        test_sets = [[0.000015,"u"],
+                     [0.0015,"m"],
+                     [0.15,"m"],
+                     [15,""],
+                     [134.3,""],
+                     [1215.2,"k"]]
+        for number, symbol in test_sets:
+            p = Prefix.from_number(number)
+            self.assertEqual(p.s, symbol, msg=f"Testing for {number} = {symbol}")
 
+    def test_from_number_edges(self):
+        test_sets = [[999,""],
+                     [1000,"k"],
+                     [1001,"k"]]
+        for number, symbol in test_sets:
+            p = Prefix.from_number(number)
+            self.assertEqual(p.s, symbol, msg=f"Testing for {number} = {symbol}")
 
 if __name__ == '__main__':
     import logging

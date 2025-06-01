@@ -1,11 +1,14 @@
 
 import re
+import logging
 
 from pyee.types.units import Units
 from pyee.types.aliases import t_numeric
 from pyee.types.prefixes import Prefix, t_PrefixObj
 
 from pyee.regex import re_number_and_prefix
+
+logger = logging.getLogger(__name__)
 
 def vp_from_number(number: t_numeric) -> tuple[t_numeric, t_PrefixObj]:
     """
@@ -50,9 +53,8 @@ def vpu_from_ustring(ustring : str) -> tuple[t_numeric, "Prefix", "Units"]:
     prefix_s = valprevix_match.group("prefix")
 
     val = float(val_s)
-    prefix = Prefix(prefix_s)
-
+    prefix = Prefix.from_string(prefix_s)
     val_u, prefix_u = Prefix.rebalance(val, prefix)
-
     units = Units.from_string(parts[1] if len(parts) == 2 else "")
+
     return val_u, prefix_u, units

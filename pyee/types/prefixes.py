@@ -23,45 +23,51 @@ class Prefix(object):
     new Prefix instance.  Otherwise acts like a number and attempts the operation.
     """
 
-    _DATA_FILE = "SI_prefixes"
-    _data_by_symbol = None
-    _data_by_name = None
-    _data_by_value = None
-    _data_value_scale = None
+    _DATA_FILE : str | None = None
+    _data_by_symbol = dict()
+    _data_by_name = dict()
+    _data_by_value = dict()
+    _data_value_scale = dict()
 
     __DEBUG = False
 
     @staticmethod
-    def rebalance(num: float, prefix: "Prefix | None" = None) -> tuple[float, "Prefix"]:
+    def rebalance(num: float, prefix: t_PrefixObj | None = None) -> tuple[float, "Prefix"]:
         value = num*prefix.f if prefix is not None else num
         np = Prefix.from_number(value)
         nv = value/np.f
         return nv, np
 
-
     @classmethod
-    def from_name(cls, pstring):
+    def from_string(cls, pstring: str) -> t_PrefixObj:
         """
         Searches for a prefix matching the given symbol.  Does not check for multiple matches... as
-        this should never happen.  If no match is made, raises key error.
+        this should never happen.  
+        
+        If cannot find by name, tries by symbol.
+
+        If no match is made, raises key error.
 
         Does not support array arguments.
 
         :param pstring: prefix string
         :return: prefix object if possible.
         """
-        pobj = Prefix() # forces load of initial dict... dumb but simple
+        
+        if cls._DATA_FILE is None: cls.reload_data()
 
-        pdata = Prefix._data_by_name[pstring] # type: ignore
+        sym_data = cls._data_by_symbol.get(pstring, None)
+        if sym_data is not None:
+            return cls(pstring, sym_data['factor'], sym_data['name'])
 
-        pobj.n = pstring
-        pobj.f = pdata["factor"]
-        pobj.s = pdata["symbol"]
+        sym_data = cls._data_by_name.get(pstring, None)
+        if sym_data is not None:
+            return cls(sym_data['symbol'], sym_data['factor'], pstring)
 
-        return pobj
+        raise ValueError(f"Unknown symbol or name for new prefix: {pstring}, {cls._data_by_symbol}")
 
     @classmethod
-    def from_number(cls, num):
+    def from_number(cls, pnum: t_numeric) -> t_PrefixObj:
         """
         Returns the closest prefix to use for the given number.  Attempts to use a prefix that
         will result in a number formatted "well", meaning 1-3 digits ahead of the decimal place.
@@ -71,37 +77,37 @@ class Prefix(object):
         """
         #TODO array-itize this... some messy lists mixed with arrays below.
 
-        pobj = cls()  # forces load of initial dict... dumb but simple
-
-        pnum = abs(num)
+        if cls._DATA_FILE is None: cls.reload_data()
 
         # if greater than 1, we want the next smallest factor.
         #scalar was: diffs = [1 if (pnum - v) >= 0 else 0 for v in cls._data_value_scale]
-        diffs = np.array([1*((pnum - v) >= 0) for v in cls._data_value_scale]) # type: ignore
+        diffs = np.array([1*((pnum - v) >= 0) for v in cls._data_value_scale])
         if cls.__DEBUG: logger.error(f"... ... PREFIX: diffs={diffs}")
 
-        pobj.f = cls._data_value_scale[max(np.max(diffs.nonzero()),0)] # type: ignore
-        pobj.s = cls._data_by_value[pobj.f]["symbol"] # type: ignore
-        pobj.n = cls._data_by_value[pobj.f]["name"] # type: ignore
 
-        return pobj
+        factor = cls._data_value_scale[max(np.max(diffs.nonzero()),0)] #type: ignore , will fail if diffs has too many elements
+        symbol = cls._data_by_value[factor]["symbol"]
+        name = cls._data_by_value[factor]["name"]
+        return cls(symbol, factor, name)
 
-    def __init__(self, symbol=""):
-        if self._data_by_symbol is None:
-            Prefix._data_by_symbol = load_data_file(Prefix._DATA_FILE)
-            Prefix._data_by_value = {d["factor"]: {"symbol":s, "name":d["name"]} for s, d in Prefix._data_by_symbol.items()}
-            Prefix._data_value_scale = sorted(Prefix._data_by_value.keys())
-            Prefix._data_by_name = {d["name"]: {"symbol":s, "factor":d["factor"]} for s, d in Prefix._data_by_symbol.items()}
+    @classmethod
+    def reload_data(cls, datafile : str = "SI_prefixes") -> None:
+        cls._DATA_FILE = datafile
+        cls._data_by_symbol = load_data_file(cls._DATA_FILE)
+        cls._data_by_value = {d["factor"]: {"symbol":s, "name":d["name"]} for s, d in cls._data_by_symbol.items()}
+        cls._data_value_scale = sorted(cls._data_by_value.keys())
+        cls._data_by_name = {d["name"]: {"symbol":s, "factor":d["factor"]} for s, d in cls._data_by_symbol.items()}
 
-        self.f = 1
-        self.n = ""
+    def __new__(cls, *args, **kwargs) -> t_PrefixObj:
+        # make sure we have loaded dicts before making an object
+        if cls._DATA_FILE is None: 
+            cls.reload_data()
+        return super().__new__(cls)
+
+    def __init__(self, symbol: str, factor: t_numeric, name : str) -> None:
+        self.f = factor
+        self.n = name
         self.s = symbol
-
-        if self.s is None:
-            return
-
-        self.f = self._data_by_symbol[symbol]["factor"]  # type: ignore
-        self.n = self._data_by_symbol[symbol]["name"]  # type: ignore
 
     def __copy__(self):
         return copy.deepcopy(self)
