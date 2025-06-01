@@ -6,11 +6,11 @@ Mostly for inheritance of common items - generally not used by themselves.
 import logging
 from abc import ABC, abstractmethod
 
-from ..types.converters import vpu_from_ustring, vp_from_number
+from pyee.types.converters import vpu_from_ustring, vp_from_number
 
-from ..types.physicalquantity import PhysicalQuantity, t_PQObj, t_PQSource
-from ..types.units import Units, t_UnitsSource
-from ..types.aliases import t_numeric
+from pyee.types.physicalquantity import PhysicalQuantity, t_PQObj, t_PQSource
+from pyee.types.units import Units, t_UnitsSource
+from pyee.types.aliases import t_numeric
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +41,7 @@ def format_fs(inputobj : t_PQSource, defaultunits: t_UnitsSource, inputunits: t_
         v, p, u = vpu_from_ustring(inputobj)
     elif isinstance(inputobj, (float, int)):
         v, p = vp_from_number(inputobj)
-        u = Units() # empty units
+        u = Units.create_unitless() # empty units
     
     fsobj = PhysicalQuantity(v, p, u)
 

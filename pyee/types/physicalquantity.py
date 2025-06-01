@@ -609,7 +609,7 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
             self._var0 = val
         elif self._var0 is None:
             nv, np = vp_from_number(val)
-            nu = Units() # unitless with no arguments...
+            nu = Units.create_unitless()
             self._var0 = PhysicalQuantity(value=nv, prefix=np, units=nu)
         else:  # assume self._var0 is a PQ, and new item is not...
             nv, np = vp_from_number(val)

@@ -51,7 +51,19 @@ class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
 
     def __init__(self, value:t_numeric, prefix:t_PrefixObj, units:t_UnitObj, *args, **kwargs) -> None:
         if (self.default_units is not None) and (units != self.default_units):
-            raise UnitsMissmatchException(self.default_units, units, "init", notes="Creating new PassiveComponent with incorrect units...")
+            if units.unitless:
+                units = self.default_units.copy()
+            else: # no units is OK - use default. if wrong units give... raise issue with it.
+                try:
+                    su = units.simplify()
+                except AttributeError as _:
+                    su = Units.create_unitless()
+                
+                if su != self.default_units:
+                    raise UnitsMissmatchException(self.default_units, units, "init", 
+                                                  notes=f"Creating new PassiveComponent with incorrect units... started with {units}")
+                else:
+                    units = su
         super().__init__(value, prefix, units, *args, **kwargs)
 
     def __add__(self, value):
