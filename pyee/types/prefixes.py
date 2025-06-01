@@ -28,7 +28,7 @@ class Prefix(object):
     _data_by_value = dict()
     _data_value_scale = dict()
 
-    __DEBUG = True
+    __DEBUG = False
 
     @staticmethod
     def rebalance(num: float, prefix: t_PrefixObj | None = None) -> tuple[float, "Prefix"]:

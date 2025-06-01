@@ -61,7 +61,8 @@ class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
                 
                 if su != self.default_units:
                     raise UnitsMissmatchException(self.default_units, units, "init", 
-                                                  notes=f"Creating new PassiveComponent with incorrect units... started with {units}")
+                                                  notes=f"Creating new PassiveComponent with incorrect units... "
+                                                  "started with {units}")
                 else:
                     units = su
         super().__init__(value, prefix, units, *args, **kwargs)
