@@ -1,6 +1,5 @@
 
 import logging
-import copy
 
 import numpy as np
 from pyee.utilities import load_data_file
@@ -29,7 +28,7 @@ class Prefix(object):
     _data_by_value = dict()
     _data_value_scale = dict()
 
-    __DEBUG = False
+    __DEBUG = True
 
     @staticmethod
     def rebalance(num: float, prefix: t_PrefixObj | None = None) -> tuple[float, "Prefix"]:
@@ -75,13 +74,13 @@ class Prefix(object):
         :param pnum: number to find a prefix for
         :return: new prefix object
         """
-        #TODO array-itize this... some messy lists mixed with arrays below.
-
+        abs_pnum = abs(pnum)
+        
         if cls._DATA_FILE is None: cls.reload_data()
 
         # if greater than 1, we want the next smallest factor.
         #scalar was: diffs = [1 if (pnum - v) >= 0 else 0 for v in cls._data_value_scale]
-        diffs = np.array([1*((pnum - v) >= 0) for v in cls._data_value_scale])
+        diffs = np.array([1*((abs_pnum - v) >= 0) for v in cls._data_value_scale])
         if cls.__DEBUG: logger.error(f"... ... PREFIX: diffs={diffs}")
 
 
@@ -110,7 +109,10 @@ class Prefix(object):
         self.s = symbol
 
     def __copy__(self):
-        return copy.deepcopy(self)
+        ns = self.s # string, so no need to copy
+        nf = self.f # number, so no need to copy
+        nn = self.n # string, so no need to copy
+        return type(self)(ns, nf, nn)
 
     def __repr__(self):
         if self.n == "":

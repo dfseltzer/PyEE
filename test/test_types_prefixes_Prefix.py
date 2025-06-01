@@ -35,6 +35,20 @@ class TestCase_from_number(unittest.TestCase):
             p = Prefix.from_number(number)
             self.assertEqual(p.s, symbol, msg=f"Testing for {number} = {symbol}")
 
+    def test_from_number_negatives(self):
+        test_sets = [[-0.000015,"u"],
+                     [-0.0015,"m"],
+                     [-0.15,"m"],
+                     [-15,""],
+                     [-134.3,""],
+                     [-1215.2,"k"],
+                     [-999,""],
+                     [-1000,"k"],
+                     [-1001,"k"]]
+        for number, symbol in test_sets:
+            p = Prefix.from_number(number)
+            self.assertEqual(p.s, symbol, msg=f"Testing for {number} = {symbol}")
+
 if __name__ == '__main__':
     import logging
     logging.getLogger().setLevel(logging.INFO)

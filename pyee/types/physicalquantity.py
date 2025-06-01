@@ -29,8 +29,10 @@ from pyee.math.polynomials import polysub
 
 from pyee.exceptions import UnitsMissmatchException
 
-type t_PQObj = PhysicalQuantity
 type t_PQSource = PhysicalQuantity | t_numeric | str
+type t_PQBObj = PhysicalQuantityBase
+type t_PQObj = PhysicalQuantity
+type t_DPQObj = DependantPhysicalQuantity
 
 logger = logging.getLogger(__name__)
 
@@ -40,20 +42,20 @@ class PhysicalQuantityBase(ABC):
 
     @classmethod
     @abstractmethod
-    def from_string(cls, ustring, **kwargs) -> "PhysicalQuantityBase":
+    def from_string(cls, ustring, **kwargs) -> t_PQBObj:
         pass
 
     @classmethod
     @abstractmethod
-    def from_value(cls, *args, **kwargs) -> "PhysicalQuantityBase":
+    def from_value(cls, *args, **kwargs) -> t_PQBObj:
         pass
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__()
 
-    def __copy__(self):
-        return copy.deepcopy(self)
-
+    @abstractmethod
+    def __copy__(self) -> t_PQBObj:
+        pass
 
 class PhysicalQuantity(PhysicalQuantityBase):
     __DEBUG = False
@@ -68,7 +70,7 @@ class PhysicalQuantity(PhysicalQuantityBase):
         return cls(v, p, u, **kwargs)
 
     @classmethod
-    def from_value(cls, value:t_numeric , units:t_UnitObj, **kwargs) -> t_PQObj:
+    def from_value(cls, value:t_numeric , units:t_UnitsSource, **kwargs) -> t_PQObj:
         """
         Create a new Physical Quantity from a value and optional unit.
         """
@@ -84,22 +86,22 @@ class PhysicalQuantity(PhysicalQuantityBase):
         elif isinstance(value, str):
             return cls.from_string(value)
         else: # try from value... might work?
-            return cls.from_value(value)
+            return cls.from_value(value, units=None)
 
     def __init__(self, value:t_numeric, prefix:t_PrefixObj, units:t_UnitObj) -> None:
         """
         Use constructors from_value and from_string!
         """
         super().__init__()
-
-        if self.__DEBUG:
-            logger.error(f".... p={prefix} ({type(prefix)})")
-            logger.error(f".... v={value} ({type(value)})")
-            logger.error(f".... u={units} ({type(units)})")
-
         self.v = value
         self.p = prefix
         self.u = units
+
+    def __copy__(self) -> t_PQObj:
+        nv = self.v # value is a number, no need to copy it
+        np = self.p.copy() # prefix object - needs copy
+        nu = self.u.copy() # units is an object - needs a copy
+        return type(self)(nv, np, nu)
 
     def __repr__(self):
         return f"{self.v:7.3f}{self.p} [{self.u}]"
@@ -228,7 +230,7 @@ class PhysicalQuantity(PhysicalQuantityBase):
             self.v, self.p = vp_from_number(newval)
         self.u = newunits    
 
-    def as_base(self, **kwargs):
+    def as_base(self, **kwargs) -> t_PQObj:
         """
         converts units to base units in given context
 
@@ -238,10 +240,10 @@ class PhysicalQuantity(PhysicalQuantityBase):
         newunits = self.u.as_base(**kwargs)
         return PhysicalQuantity(value=self.v, prefix=self.p.copy(), units=newunits)
 
-    def copy(self) -> "PhysicalQuantity":
+    def copy(self) -> t_PQObj:
         return self.__copy__()
 
-    def simplify(self, **kwargs) -> "PhysicalQuantity":
+    def simplify(self, **kwargs) -> t_PQObj:
         newunits = self.u.simplify(**kwargs)
         return PhysicalQuantity(value=self.v, prefix=self.p, units=newunits)
 
@@ -270,7 +272,7 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
     __DEBUG = False
 
     @classmethod
-    def from_string(cls, ustring : str, **kwargs) -> "DependantPhysicalQuantity":
+    def from_string(cls, ustring : str, **kwargs) -> t_DPQObj:
         raise NotImplementedError(f"Not done yet... cant turn {ustring} into dependant.  Write some code maybe?")
     
     @classmethod
@@ -279,7 +281,7 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
                    units : t_UnitsSource = None, 
                    var0 : "PhysicalQuantity | t_numeric | None" = None, 
                    var_units=None, 
-                   **kwargs) -> "DependantPhysicalQuantity":
+                   **kwargs) -> t_DPQObj:
         """
         :param num: numerator array
         :param den: denominator array, or None (if demoninator = 1)
@@ -324,15 +326,15 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
             self._var0 = var0
         else: # try it... might work?
             self._var0 = PhysicalQuantity.from_value(value=var0, units=var_units)                
-
         self._var_symbol = var_symbol
 
-    def reduce_to_tol(self):
-        """
-        Removes all coefficients less than tolerance
-        """
-        self.num = np.where(abs(self.num) > self.tol, self.num, 0) #type: ignore
-        self.den = np.where(abs(self.den) > self.tol, self.den, 0) #type: ignore
+    def __copy__(self) -> t_DPQObj:
+        return type(self)(num=self.num.copy(),
+                          den=self.den.copy(),
+                          units=self.u.copy(),
+                          var0=self._var0,
+                          var_symbol=self._var_symbol, 
+                          tol=self.tol)
 
     def __repr__(self):
         try:
@@ -612,3 +614,10 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
         else:  # assume self._var0 is a PQ, and new item is not...
             nv, np = vp_from_number(val)
             self._var0 = PhysicalQuantity(value=nv, prefix=np, units=self._var0.u) # type: ignore
+
+    def reduce_to_tol(self):
+        """
+        Removes all coefficients less than tolerance
+        """
+        self.num = np.where(abs(self.num) > self.tol, self.num, 0) #type: ignore
+        self.den = np.where(abs(self.den) > self.tol, self.den, 0) #type: ignore

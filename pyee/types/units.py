@@ -211,7 +211,9 @@ class Units(object):
         self.context = context
 
     def __copy__(self):
-        return Units(s=self.s.copy())
+        ns = self.s.copy() # dictionary, so copy it
+        nc = self.context # string, no need to copy
+        return type(self)(s=ns, context=nc)
 
     def __repr__(self):
         p1 = sorted([f"{s}^{e}" if e > 1 else s for s, e in self.s.items() if e > 0])
