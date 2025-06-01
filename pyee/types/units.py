@@ -26,7 +26,7 @@ from typing import Callable
 
 from pyee.regex import re_ustring_den_group, re_ustring_non_exp_sets, re_ustring_single_den
 from pyee.utilities import load_data_file
-from pyee.exceptions import UnitsMissmatchException, UnitsConversionException
+from pyee.exceptions import UnitsMissmatchException, UnitsConversionException, UnitsConstructionException
 
 type t_UnitObj = Units
 type t_UnitsSource = str | dict | t_UnitObj | None
@@ -67,11 +67,11 @@ class Units(object):
         Create a new Units class from either a string or an existing units instance.
         """
 
-        if other is None: # return empty unit (unitless)
-            return cls.create_unitless()
-        elif isinstance(other, cls): # new unit from existing unit... just return it.
+        if isinstance(other, cls): # new unit from existing unit... just return it.
             return other
-        
+        elif other is None: # return empty unit (unitless)
+            return cls.create_unitless()
+
         try: # maybe string like enough?
             return cls.from_string(other) #type: ignore
         except (ValueError, TypeError):
@@ -84,7 +84,7 @@ class Units(object):
             return cls(other) #type: ignore
         except (ValueError, TypeError, AttributeError) as e:
             logger.error(f"Unable to make new unit from {other}")
-            raise e            
+            raise TypeError(f"Unable to make new unit from {other}.  Original exception was {e}")
 
     @classmethod
     def from_string(cls, ustring : str, **kwargs) -> t_UnitObj:
@@ -120,9 +120,11 @@ class Units(object):
             e_neg = s.group("e")
             e = "-1" if e_neg is None else str(-int(e_neg[1:]))
             return "."+s.group("u")+"^"+e+"."
-
         u_flipped = re_ustring_single_den.sub(flipe, u_nosingles)
         if __DEBUG: logger.error(f"u_flipped: {u_flipped}")
+
+        # remove all parentheses - not needed anymore hopefully?
+        u_together = re.sub(r"[()]", "", u_flipped).strip(".")
 
         # clean extra dots
         u_strip = re.sub(r"\.+", ".", u_flipped).strip(".")
@@ -141,9 +143,17 @@ class Units(object):
         u_parts = [ue.split("^") for ue in u_padded.split(".") if ue not in ('1', '(1)')]
         if __DEBUG: logger.error(f"u_parts: {u_parts}")
 
+
         s_full = dict()
-        for ue0, ue1 in u_parts:
-            s_full[ue0] = s_full.get(ue0,0) + int(ue1)
+        try:
+            for ue0, ue1 in u_parts:
+                s_full[ue0] = s_full.get(ue0,0) + int(ue1)
+        except ValueError: # sometimes failes if an element of u_parts did not split into 2
+            logger.debug(f"Failed converting {ustring} in to {s_full}")
+            raise UnitsConstructionException(ustring, (u_strip, u_padded, u_parts, s_full))
+            
+
+
         logger.debug(f"Converter {ustring} in to {s_full}")
 
         s_full = {k: v for k, v in s_full.items() if v != 0}
@@ -186,8 +196,8 @@ class Units(object):
         try: # get base data if exists
             s2 = other.s
         except AttributeError: # if not, try and make a new units from it
-            s2 = self.__get_s_from_other(other)
-
+            u2 = self.from_any(other)
+            s2 = u2.s
         ur = {u: self.s.get(u,0) + s2.get(u,0) for u in set(self.s.keys() | s2.keys())}
         return Units(ur)
 
@@ -237,7 +247,8 @@ class Units(object):
         try:  # get base data if exists
             s2 = other.s
         except AttributeError:  # if not, try and make a new units from it
-            s2 = self.__get_s_from_other(other)
+            u2 = self.from_any(other)
+            s2 = u2.s
 
         ur = {u: self.s.get(u, 0) - s2.get(u, 0) for u in set(self.s.keys() | s2.keys())}
         return Units(ur)
@@ -251,7 +262,8 @@ class Units(object):
         try:  # get base data if exists
             s2 = other.s
         except AttributeError:  # if not, try and make a new units from it
-            s2 = self.__get_s_from_other(other)
+            u2 = self.from_any(other)
+            s2 = u2.s
 
         ur = {u: s2.get(u, 0) - self.s.get(u, 0) for u in set(self.s.keys() | s2.keys())}
         return Units(ur)
@@ -260,7 +272,8 @@ class Units(object):
         try:
             s2 = other.s
         except AttributeError:
-            s2 = self.__get_s_from_other(other)
+            u2 = self.from_any(other)
+            s2 = u2.s
         
         return self.s == s2
 

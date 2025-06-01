@@ -1,90 +1,77 @@
 import unittest
+from pyee.types.units import Units
 
 class TestCase_from_string(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         import logging
-        from pyee.types.units import Units
 
-        cls.Units = Units
-
-    def test_empty_units(self):
-        u = self.Units.from_string("1")
+    def test_create_empty_units_function(self):
+        u = Units.create_unitless()
         self.assertDictEqual(u.s, {})
 
-        u = self.Units.from_string("1/1")
+    def test_create_empty_units_string(self):
+        empty_strs = ["1", "1/1", "1/(1)", "(1)/1", "s/s", "s.s^-1"]
+        for ustring in empty_strs:
+            u = Units.from_string(ustring)
+            self.assertDictEqual(u.s, {})
+
+    def test_create_empty_units_direct(self):
+        u = Units({})
         self.assertDictEqual(u.s, {})
 
-        u = self.Units.from_string("(1)/1")
-        self.assertDictEqual(u.s, {})
+    def test_create_simple_1(self):
+        # no demoninator, no paranthesis
+        test_sets = {"m.s":{"m": 1, "s": 1},
+                     "m.s^-1":{"m": 1, "s": -1},
+                     "m^-1.s":{"m": -1, "s": 1},
+                     "m.s.kg^2":{"m": 1, "s": 1, "kg":2}}
+        for ustring, sdict in test_sets.items():
+            u = Units.from_string(ustring)
+            self.assertDictEqual(u.s, sdict)
 
-        u = self.Units.from_string("1/(1)")
-        self.assertDictEqual(u.s, {})
+    def test_create_simple_2(self):
+        # no demoninator, with parethesis
+        test_sets = {"m.(s^1)":{"m": 1, "s": 1},
+                     "m.(s)":{"m": 1, "s": 1},
+                     "(m.s^-1)":{"m": 1, "s": -1},
+                     "(m^-1).s":{"m": -1, "s": 1},
+                     "m.(s).kg^2":{"m": 1, "s": 1, "kg":2}}
+        for ustring, sdict in test_sets.items():
+            u = Units.from_string(ustring)
+            self.assertDictEqual(u.s, sdict)
 
-        u = self.Units.from_string("(1)/(1)")
-        self.assertDictEqual(u.s, {})
+    def test_create_unit_denominator(self):
+        # unit denominator and paranthensis
+        test_sets = {"s/1":{"s": 1},
+                     "s/(1)":{"s": 1},
+                     "s^2/(1)":{"s": 2},
+                     "s^-1/1":{"s": -1}}
+        for ustring, sdict in test_sets.items():
+            u = Units.from_string(ustring)
+            self.assertDictEqual(u.s, sdict)
 
-        u = self.Units.from_string("")
-        self.assertDictEqual(u.s, {})
+    def test_create_unit_numerator(self):
+        # unit numerator and paranthensis
+        test_sets = {"1/s":{"s": -1},
+                     "1/(s)":{"s": -1},
+                     "(1)/s":{"s": -1}, 
+                     "1/(s^2)":{"s": -2},
+                     "1/s^-1":{"s": 1}}
+        for ustring, sdict in test_sets.items():
+            u = Units.from_string(ustring)
+            self.assertDictEqual(u.s, sdict)
 
-        u = self.Units({})
-        self.assertDictEqual(u.s, {})
-
-        u = self.Units.from_string("s/s")
-        self.assertDictEqual(u.s, {})
-
-
-    def test_from_string_simple_no_den(self):
-        u = self.Units.from_string("m.s")
-        self.assertDictEqual(u.s, {"m": 1, "s": 1})
-
-        u = self.Units.from_string("m.s^-1")
-        self.assertDictEqual(u.s, {"m": 1, "s": -1})
-
-        u = self.Units.from_string("m^-1.s")
-        self.assertDictEqual(u.s, {"m": -1, "s": 1})
-
-        u = self.Units.from_string("m.s.kg^2")
-        self.assertDictEqual(u.s, {"m": 1, "s": 1, "kg":2})
-
-    def test_from_string_simple_single_den(self):
-        u = self.Units.from_string("s/1")
-        self.assertDictEqual(u.s, {"s": 1})
-
-        u = self.Units.from_string("s/(1)")
-        self.assertDictEqual(u.s, {"s": 1})
-
-    def test_from_string_simple_no_num(self):
-        u = self.Units.from_string("1/s")
-        self.assertDictEqual(u.s, {"s": -1})
-
-    def test_from_string_simple_no_num_paren(self):
-        u = self.Units.from_string("(1)/s")
-        self.assertDictEqual(u.s, {"s": -1})
-
-    def test_from_string_no_parens(self):
-        # no parentheses in denominator
-        u = self.Units.from_string("m/s/kg^2")
-        self.assertDictEqual(u.s, {"m": 1, "s": -1, "kg": -2})
-
-    def test_from_string_parens(self):
-        u = self.Units.from_string("m/(s.kg^2)")
-        self.assertDictEqual(u.s, {"m": 1, "s": -1, "kg": -2})
-
-        u = self.Units.from_string("m/(s)/(kg^2)")
-        self.assertDictEqual(u.s, {"m": 1, "s": -1, "kg": -2})
-
-    def test_from_string_den_leading_dot_paren(self):
-        u = self.Units.from_string("kg/(.s)")
-        self.assertDictEqual(u.s, {"kg": 1, "s": -1})
-        
-    def test_from_string_den_leading_dot(self):    
-        u = self.Units.from_string("kg/.s")
-        self.assertDictEqual(u.s, {"kg": 1, "s": -1})
-    
-    def test_from_string_misc(self):
-        u = self.Units.from_string("kg/(1.s)")
-        self.assertDictEqual(u.s, {"kg": 1, "s": -1})
+    def test_create_full(self):
+        # everything else, split out portions as we find issues.
+        test_sets = {"m/(s.kg^2)":{"m": 1, "s": -1, "kg": -2},
+                     "m/(s)/(kg^2)":{"m": 1, "s": -1, "kg": -2},
+                     "kg/(.s)":{"kg": 1, "s": -1},
+                     "kg/.s":{"kg": 1, "s": -1},
+                     "kg/(1.s)":{"kg": 1, "s": -1}}
+        for ustring, sdict in test_sets.items():
+            u = Units.from_string(ustring)
+            self.assertDictEqual(u.s, sdict)
 
 
 class TestCase_Units_maths(unittest.TestCase):
