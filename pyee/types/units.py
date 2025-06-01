@@ -53,6 +53,7 @@ def load_unit_context(context: str) -> dict:
 
 class Units(object):
     CONTEXTS = dict()
+    __DEBUG=False
 
     @classmethod
     def create_unitless(cls, **kwargs) -> t_UnitObj:
@@ -97,69 +98,95 @@ class Units(object):
         :raises ValueError: if ustring cannot be split cleanly
         """
 
-        # set True to print each step to error log... regex is anoying..
-        __DEBUG = False
+        # hanging dots are tricky... remove them with a regex... maybe we can algo our way out of it later.
+        def group_replace(match):
+            group_text = match.group(0)
+            return group_text.replace(".", "")
+        ustring_clean = re.sub(r"(?:\()(\.+)|(\.+)(?:\))", group_replace, ustring)
+        
 
-        if ustring == "" or ustring == "1":
-            return cls.create_unitless(**kwargs)
+        ndparts1 = ustring_clean.split("/") # get num/den parts (can be any number... a/b/c)
+        if cls.__DEBUG:
+            ndparts2 = [nd.split(".") for nd in ndparts1] # each elemnent is split by a dot
+            ndparts3 = [[ep.split("^") for ep in np] for np in ndparts2] # 
+        else:
+            ndparts2 = (nd.split(".") for nd in ndparts1) # each elemnent is split by a dot
+            ndparts3 = ((ep.split("^") for ep in np) for np in ndparts2) # 
 
-        # convert all /(u^e.u^e) to /u^e/u^e
-        def splitd(s):
-            d_subs = s.group(0).replace("(","").replace(")","").replace(".","/")
-            return d_subs
+        sdict = {}
+        group_sets = [-1]
+        sign_normal = 1
+        for numden in ndparts3:
+            group_sets[-1] = -1*group_sets[-1]
+            for element in numden:
+                try:
+                    base, exp = element
+                except ValueError:
+                    base, exp = (element[0], 1)
 
-        u_splitd = re_ustring_den_group.sub(splitd, ustring)
-        if __DEBUG: logger.error(f"u_splitd: {u_splitd}")
+                if cls.__DEBUG:
+                    logger.error(f"Converting {ustring}:\n" +
+                                "\n".join(f"{s:15}:{list(o)}" for s, o in {"element": element, "numden": numden, 
+                                                                    "ndparts3": [list(o2) for o2 in ndparts3]}.items()))
+                    logger.error(f"Currently at\n\tgroup_sets: {group_sets}\n\tsign_normal: {sign_normal}\n\tsdict: {sdict}")
+                
+                try: # ugly but... way shorter than cathing it all.  this works fine for debugging.
+                    if base == "":
+                        pass # skip if empty
+                    elif base[0] == "(": # starting a group
+                        # case:       ?(###... starts a new group in any case
+                        #       ...###/(###... sets 'hold' on a negative sign exponent (set normal to -1)
+                        base_clean = base[1:]
+                        if element[-1][-1] == ")": # ending a group, start and end... same as NONE
+                            if group_sets[-1] + sign_normal: # we are the normal sign... 
+                                this_exp = sign_normal
+                            else: # we are not sign normal... must be first after a change. re-set to sign normal after use.
+                                this_exp = group_sets[-1]
+                                group_sets[-1] = sign_normal
+                            try:
+                                exp_int = int(exp[:-1]) # type: ignore , if it existed, its a string << NOT SAME AS NONE
+                                base_cleaner = base_clean
+                            except TypeError as e:
+                                exp_int = int(exp)
+                                base_cleaner = base_clean[:-1] # ugly reset but... meh
+                            sdict[base_cleaner] = sdict.get(base_cleaner, 0) + exp_int*this_exp
+                        else:
+                            sign_normal = group_sets[-1] # if it was negative, new normal is... otherwise not.
+                            group_sets.append(sign_normal) # start a new group
+                            exp_int = int(exp)
+                            sdict[base_clean] = sdict.get(base_clean, 0) + exp_int*sign_normal # really last element, but thats set here.                
+                    elif element[-1][-1] == ")": # ending a group
+                        sign_normal = 1 # if we were negative, its positive now. if we were positive, keep it.
+                        this_exp = group_sets.pop() # this is the last element with the prev sign... maybe
+                        try:
+                            exp_int = int(exp[:-1]) # type: ignore , if it existed, its a string << NOT SAME AS NONE
+                            base_clean = base
+                        except TypeError as e:
+                            exp_int = int(exp)
+                            base_clean = base[:-1] # ugly reset but... meh
+                        sdict[base_clean] = sdict.get(base_clean, 0) + exp_int*this_exp
+                    else: # same group
+                        # this a x: ##x#     stays normal.  maybe -1 if in a group that set that... 
+                        #           ###/x##  
+                        # normal is unchanged, but first item is "not normal"
+                        #           ###/#x##
+                        #           ###/##x#
+                        if group_sets[-1] + sign_normal: # we are the normal sign... 
+                            this_exp = sign_normal
+                        else: # we are not sign normal... must be first after a change. re-set to sign normal after use.
+                            this_exp = group_sets[-1]
+                            group_sets[-1] = sign_normal
+                        exp_int = int(exp)
+                        sdict[base] = sdict.get(base, 0) + exp_int*this_exp
+                except (ValueError, TypeError) as e:
+                    raise UnitsConstructionException(ustring, (element, element[-1][-1], numden, ndparts3), msg=f"Original error: {e}")
+                if cls.__DEBUG:
+                    logger.error(f"After loop... at\n\tgroup_sets: {group_sets}\n\tsign_normal: {sign_normal}\n\tsdict: {sdict}")
 
-        # remove all /1 instances, remove all double //
-        u_nosingles = u_splitd.replace("/1","").replace("//","/")
-        if __DEBUG: logger.error(f"u_nosingles: {u_nosingles}")
-
-        # flip all instances of "/u^e" to "u^-e"
-        def flipe(s):
-            e_neg = s.group("e")
-            e = "-1" if e_neg is None else str(-int(e_neg[1:]))
-            return "."+s.group("u")+"^"+e+"."
-        u_flipped = re_ustring_single_den.sub(flipe, u_nosingles)
-        if __DEBUG: logger.error(f"u_flipped: {u_flipped}")
-
-        # remove all parentheses - not needed anymore hopefully?
-        u_together = re.sub(r"[()]", "", u_flipped).strip(".")
-
-        # clean extra dots
-        u_strip = re.sub(r"\.+", ".", u_flipped).strip(".")
-
-        if __DEBUG: logger.error(f"u_strip: {u_strip}")
-
-        # give all sets an exponent
-        def addone(s):
-            return s.group(0)+"^1"
-
-        u_padded = re_ustring_non_exp_sets.sub(addone, u_strip).strip(".")
-        if __DEBUG: logger.error(f"u_padded: {u_padded}")
-
-
-        # while splitting, remove all single '1' sets - caused by "1/..." sets
-        u_parts = [ue.split("^") for ue in u_padded.split(".") if ue not in ('1', '(1)')]
-        if __DEBUG: logger.error(f"u_parts: {u_parts}")
-
-
-        s_full = dict()
-        try:
-            for ue0, ue1 in u_parts:
-                s_full[ue0] = s_full.get(ue0,0) + int(ue1)
-        except ValueError: # sometimes failes if an element of u_parts did not split into 2
-            logger.debug(f"Failed converting {ustring} in to {s_full}")
-            raise UnitsConstructionException(ustring, (u_strip, u_padded, u_parts, s_full))
-            
-
-
-        logger.debug(f"Converter {ustring} in to {s_full}")
-
-        s_full = {k: v for k, v in s_full.items() if v != 0}
-
-        obj = cls(s_full, **kwargs)
-
+        _ = sdict.pop("1", None) # remove ones as a base.. 
+        _ = sdict.pop("", None) # remove empty as a base.. 
+        sdict_clean = {k: v for k, v in sdict.items() if v}
+        obj = cls(sdict_clean, **kwargs)
         return obj
 
     def __init__(self, s : dict, context : str = "Electrical") -> None:

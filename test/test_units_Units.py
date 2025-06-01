@@ -62,12 +62,36 @@ class TestCase_from_string(unittest.TestCase):
             u = Units.from_string(ustring)
             self.assertDictEqual(u.s, sdict)
 
+    def test_create_multiple_den(self):
+        # everything else, split out portions as we find issues.
+        test_sets = {"m/(s/A)":{"m": 1, "s": -1, "A": 1},
+                     "m/(s)/s":{"m": 1, "s": -2},
+                    "m/(s/s)":{"m": 1},
+                     "kg/s/A/s":{"kg": 1, "s": -2, "A":-1},
+                     "m/kg/(A.s)":{"m": 1, "kg": -1, "s": -1, "A":-1}}
+        for ustring, sdict in test_sets.items():
+            u = Units.from_string(ustring)
+            self.assertDictEqual(u.s, sdict)
+
+    def test_create_dots(self):
+        # everything else, split out portions as we find issues.
+        test_sets = {"m/(.s/A)":{"m": 1, "s": -1, "A": 1},
+                     "m/(s.)/s":{"m": 1, "s": -2}}#,
+#                    "m/(s/s.)":{"m": 1},
+ #                    ".kg/s/A/s":{"kg": 1, "s": -2, "A":-1},
+  #                   "(.kg)/A/s/A":{"kg": 1, "A": -2, "s":-1},
+   #                  "m/.kg./(A.s...)":{"m": 1, "kg": -1, "s": -1, "A":-1}}
+        for ustring, sdict in test_sets.items():
+            u = Units.from_string(ustring)
+            self.assertDictEqual(u.s, sdict)
+
     def test_create_full(self):
         # everything else, split out portions as we find issues.
         test_sets = {"m/(s.kg^2)":{"m": 1, "s": -1, "kg": -2},
                      "m/(s)/(kg^2)":{"m": 1, "s": -1, "kg": -2},
                      "kg/(.s)":{"kg": 1, "s": -1},
                      "kg/.s":{"kg": 1, "s": -1},
+                     "kg/s":{"kg": 1, "s": -1},
                      "kg/(1.s)":{"kg": 1, "s": -1}}
         for ustring, sdict in test_sets.items():
             u = Units.from_string(ustring)
