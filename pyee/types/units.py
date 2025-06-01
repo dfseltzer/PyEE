@@ -20,7 +20,6 @@ Attempting to write pascals as "kg/m.s^2" is incorrect.
 
 import re
 import logging
-import copy
 
 from typing import Callable
 

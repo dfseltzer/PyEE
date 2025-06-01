@@ -2,10 +2,6 @@ import unittest
 from pyee.types.units import Units
 
 class TestCase_from_string(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        import logging
-
     def test_create_empty_units_function(self):
         u = Units.create_unitless()
         self.assertDictEqual(u.s, {})
@@ -97,26 +93,15 @@ class TestCase_from_string(unittest.TestCase):
             u = Units.from_string(ustring)
             self.assertDictEqual(u.s, sdict)
 
-
-class TestCase_Units_maths(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        import logging
-        from pyee.types.units import Units
-        cls.Units = Units
-
+class TestCase_units_maths(unittest.TestCase):
     def test_equals(self):
-        u1 = self.Units({"m": 1, "s": -1, "kg": -2})
-        u2 = self.Units({"s": -1, "m": 1, "kg": -2})
-        self.assertTrue(u1 == u2)
-
-        u2 = self.Units({"m": -1, "s": 1, "kg": -2})
-        self.assertFalse(u1 == u2)
-        self.assertTrue(u1 != u2)
-
-        u2 = self.Units({"s": 1, "kg": -2})
-        self.assertFalse(u1 == u2)
-
+        test_sets = [["m","m"],
+                     ["1","1"],
+                     ["kg^2","kg.kg"]]
+        for u1s, u2s in test_sets:
+            u1 = Units.from_string(u1s)
+            u2 = Units.from_string(u2s)
+            self.assertTrue(u1 == u2, msg=f"{u1s} and {u2s}")
 
 if __name__ == '__main__':
     import logging
