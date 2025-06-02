@@ -7,7 +7,7 @@ import numpy as np
 import logging
 import copy
 
-from abc import ABC
+from abc import ABCMeta
 from abc import abstractmethod
 
 from pyee.types.units import Units, t_UnitObj, t_UnitsSource
@@ -38,8 +38,7 @@ logger = logging.getLogger(__name__)
 
 ERROR_ON_UNITLESS_OPERATORS = False
 
-class PhysicalQuantityBase(ABC):
-
+class PhysicalQuantityBase(object, metaclass=ABCMeta):
     @classmethod
     @abstractmethod
     def from_string(cls, ustring, **kwargs) -> t_PQBObj:
@@ -52,6 +51,10 @@ class PhysicalQuantityBase(ABC):
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__()
+
+    @abstractmethod
+    def simplify(self, **kwargs) -> t_PQBObj:
+        pass
 
     @abstractmethod
     def __copy__(self) -> t_PQBObj:
@@ -332,7 +335,7 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
         return type(self)(num=self.num.copy(),
                           den=self.den.copy(),
                           units=self.u.copy(),
-                          var0=self._var0,
+                          var0=self._var0.copy() if self._var0 is not None else None,
                           var_symbol=self._var_symbol, 
                           tol=self.tol)
 
@@ -614,6 +617,14 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
         else:  # assume self._var0 is a PQ, and new item is not...
             nv, np = vp_from_number(val)
             self._var0 = PhysicalQuantity(value=nv, prefix=np, units=self._var0.u) # type: ignore
+
+    def simplify(self, **kwargs) -> t_DPQObj:
+        newunits = self.u.simplify(**kwargs)
+        newvar0 = self._var0.copy() if self._var0 is not None else None
+        newobj = self.copy()
+
+        newobj.reduce_to_tol()        
+        return newobj
 
     def reduce_to_tol(self):
         """
