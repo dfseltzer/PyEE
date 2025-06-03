@@ -23,7 +23,6 @@ import logging
 
 from typing import Callable
 
-from pyee.regex import re_ustring_den_group, re_ustring_non_exp_sets, re_ustring_single_den
 from pyee.utilities import load_data_file
 from pyee.exceptions import UnitsMissmatchException, UnitsConversionException, UnitsConstructionException
 

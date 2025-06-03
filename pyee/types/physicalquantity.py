@@ -19,14 +19,9 @@ from pyee.types.converters import vp_from_number
 from pyee.types.aliases import t_numeric
 from pyee.types.aliases import t_listTuple
 
-from pyee import GLOBAL_TOLERANCE
+from pyee import GLOBAL_TOLERANCE, ERROR_ON_UNITLESS_OPERATORS
 
-from pyee.math.polynomials import polyeval
-from pyee.math.polynomials import polymul
-from pyee.math.polynomials import polyadd
-from pyee.math.polynomials import polyprint
-from pyee.math.polynomials import polysub
-
+from pyee.math.polynomials import polyeval, polymul, polyadd, polyprint, polysub
 from pyee.exceptions import UnitsMissmatchException
 
 type t_PQSource = PhysicalQuantity | t_numeric | str
@@ -35,8 +30,6 @@ type t_PQObj = PhysicalQuantity
 type t_DPQObj = DependantPhysicalQuantity
 
 logger = logging.getLogger(__name__)
-
-ERROR_ON_UNITLESS_OPERATORS = False
 
 class PhysicalQuantityBase(object, metaclass=ABCMeta):
     @classmethod
@@ -52,6 +45,9 @@ class PhysicalQuantityBase(object, metaclass=ABCMeta):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__()
 
+    def copy(self) -> t_PQBObj:
+        return self.__copy__()
+
     @abstractmethod
     def simplify(self, **kwargs) -> t_PQBObj:
         pass
@@ -59,6 +55,7 @@ class PhysicalQuantityBase(object, metaclass=ABCMeta):
     @abstractmethod
     def __copy__(self) -> t_PQBObj:
         pass
+
 
 class PhysicalQuantity(PhysicalQuantityBase):
     __DEBUG = False
@@ -242,9 +239,6 @@ class PhysicalQuantity(PhysicalQuantityBase):
 
         newunits = self.u.as_base(**kwargs)
         return PhysicalQuantity(value=self.v, prefix=self.p.copy(), units=newunits)
-
-    def copy(self) -> t_PQObj:
-        return self.__copy__()
 
     def simplify(self, **kwargs) -> t_PQObj:
         newunits = self.u.simplify(**kwargs)

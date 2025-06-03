@@ -16,17 +16,7 @@ from pyee.types.converters import vp_from_number, vpu_from_ustring
 
 from pyee.exceptions import UnitsMissmatchException
 
-FREQUENCY_UNITS = "Hz"
-ERROR_ON_Z_TRANSFORM = True
-
-def set_error_on_z_transform(val):
-    """
-    If True, will raise an error on 
-    operations that have non matching units.  If False, will
-    quietly convert input to impedances and return result.
-    """
-    global ERROR_ON_Z_TRANSFORM
-    ERROR_ON_Z_TRANSFORM = bool(val)
+from pyee import DEFAULT_FREQUENCY_UNITS, ERROR_ON_UNIT_MISSMATCH
 
 class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
     @classmethod
@@ -71,7 +61,7 @@ class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
         try:
             return super().__add__(value)
         except UnitsMissmatchException as e:
-            if ERROR_ON_Z_TRANSFORM:
+            if ERROR_ON_UNIT_MISSMATCH:
                 raise e
             logger.error(f"Ignoring units missmatch - trying to convert to impedances.")
         # convert to Z, and return
@@ -83,7 +73,7 @@ class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
         try:
             return super().__radd__(value)
         except UnitsMissmatchException as e:
-            if ERROR_ON_Z_TRANSFORM:
+            if ERROR_ON_UNIT_MISSMATCH:
                 raise e
             logger.error(f"Ignoring units missmatch - trying to convert to impedances.")
         # convert to Z, and return
@@ -122,7 +112,7 @@ class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
         try:
             return super().__sub__(value)
         except UnitsMissmatchException as e:
-            if ERROR_ON_Z_TRANSFORM:
+            if ERROR_ON_UNIT_MISSMATCH:
                 raise e
             logger.error(f"Ignoring units missmatch - trying to convert to impedances.")
         # convert to Z, and return
@@ -134,7 +124,7 @@ class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
         try:
             return super().__rsub__(value)
         except UnitsMissmatchException as e:
-            if ERROR_ON_Z_TRANSFORM:
+            if ERROR_ON_UNIT_MISSMATCH:
                 raise e
             logger.error(f"Ignoring units missmatch - trying to convert to impedances.")
         # convert to Z, and return
@@ -164,7 +154,7 @@ class Resistor(PassiveComponent):
 
     @property
     def Z(self):
-        return Impedance(num=[self.v*self.p],den=[1], frequency_units=FREQUENCY_UNITS)
+        return Impedance(num=[self.v*self.p],den=[1], frequency_units=DEFAULT_FREQUENCY_UNITS)
     
     @property
     def default_units(self) -> t_UnitObj:
@@ -175,7 +165,7 @@ class Inductor(PassiveComponent):
 
     @property
     def Z(self):
-        return Impedance(num=[0, self.v * self.p], den=[1], frequency_units=FREQUENCY_UNITS)
+        return Impedance(num=[0, self.v * self.p], den=[1], frequency_units=DEFAULT_FREQUENCY_UNITS)
     
     @property
     def default_units(self) -> t_UnitObj:
@@ -186,7 +176,7 @@ class Capacitor(PassiveComponent):
 
     @property
     def Z(self):
-        return Impedance(num=[1],den=[0, self.v*self.p], frequency_units=FREQUENCY_UNITS)
+        return Impedance(num=[1],den=[0, self.v*self.p], frequency_units=DEFAULT_FREQUENCY_UNITS)
     
     @property
     def default_units(self) -> t_UnitObj:
