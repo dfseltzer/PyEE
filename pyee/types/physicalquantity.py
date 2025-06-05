@@ -3,9 +3,8 @@ Physical Quantity  and derived classes
 """
 
 import numpy as np
-
+import typing
 import logging
-import copy
 
 from abc import ABCMeta
 from abc import abstractmethod
@@ -19,14 +18,16 @@ from pyee.types.converters import vp_from_number
 from pyee.types.aliases import t_numeric
 from pyee.types.aliases import t_listTuple
 
+from pyee.config import t_NumericConfig, t_BoolConfig
+
 from pyee import GLOBAL_TOLERANCE, ERROR_ON_UNITLESS_OPERATORS
 
 from pyee.math.polynomials import polyeval, polymul, polyadd, polyprint, polysub
 from pyee.exceptions import UnitsMissmatchException
 
 type t_PQSource = PhysicalQuantity | t_numeric | str
-type t_PQBObj = PhysicalQuantityBase
-type t_PQObj = PhysicalQuantity
+t_PQBObj = typing.TypeVar("t_PQBObj", bound='PhysicalQuantityBase')
+t_PQObj = typing.TypeVar("t_PQObj", bound='PhysicalQuantity')
 type t_DPQObj = DependantPhysicalQuantity
 
 logger = logging.getLogger(__name__)
@@ -302,7 +303,7 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
                  var0: t_numeric | PhysicalQuantity | None=None, 
                  var_units : t_UnitsSource| None=None, 
                  var_symbol: str = "x", 
-                 tol: float=GLOBAL_TOLERANCE):
+                 tol: t_numeric | t_NumericConfig =GLOBAL_TOLERANCE):
         """
         :param num: numerator array
         :param den: denominator array
@@ -615,9 +616,12 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
     def simplify(self, **kwargs) -> t_DPQObj:
         newunits = self.u.simplify(**kwargs)
         newvar0 = self._var0.copy() if self._var0 is not None else None
+        
         newobj = self.copy()
-
+        newobj.u = newunits
+        newobj._var0 = newvar0
         newobj.reduce_to_tol()        
+
         return newobj
 
     def reduce_to_tol(self):
