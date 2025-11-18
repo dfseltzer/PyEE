@@ -22,7 +22,6 @@ import re
 import logging
 
 from typing import Callable
-from functools import singledispatchmethod
 
 from pyee.config import ConfigParameter
 from pyee.config import OptionsConfigParameter # import so we can register for single dispatch... do we need to?
@@ -63,7 +62,6 @@ class Units(object):
         """
         return cls(dict(), **kwargs)
 
-    @singledispatchmethod
     @classmethod
     def from_any(cls, other : t_UnitsSource) -> t_UnitObj:
         """
@@ -77,8 +75,8 @@ class Units(object):
 
         try: # maybe string like enough?
             return cls.from_string(other) #type: ignore
-        except (ValueError, TypeError) as e:
-            logger.warning(f"Units from any failed on from_string for input: {other}.  Failure was: {e}")   
+        except (ValueError, TypeError):
+            pass        
 
         try: # dictionary like?
             len(other) #type: ignore
@@ -88,16 +86,6 @@ class Units(object):
         except (ValueError, TypeError, AttributeError) as e:
             logger.error(f"Unable to make new unit from {other}")
             raise TypeError(f"Unable to make new unit from {other}.  Original exception was {e}")
-
-    @from_any.register
-    @classmethod
-    def _(cls, other: str):
-        return cls.from_string(other)
-    
-    @from_any.register
-    @classmethod
-    def _(cls, other: OptionsConfigParameter):
-        return cls.from_string(other.parameter)
 
     @classmethod
     def from_string(cls, ustring : str, **kwargs) -> t_UnitObj:

@@ -1,13 +1,9 @@
 """
 Configuration module.
 """
-from abc import ABCMeta
-from typing import Any, TypeVar
-
-type t_BoolConfig = BooleanConfigParameter
-type t_NumericConfig = NumericConfigParameter
-t_OptionsConfig = TypeVar("t_OptionsConfig", bound='OptionsConfigParameter')
-
+from abc import ABCMeta, abstractmethod
+from types import UnionType
+from typing import Any
 
 class ConfigParameter(object, metaclass=ABCMeta):
     def __new__(cls, *args, **kwargs):
@@ -23,10 +19,6 @@ class ConfigParameter(object, metaclass=ABCMeta):
     
     def set(self, value):
         self.parameter = value
-
-    def __getattr__(self, item):
-        # on fail use meathods from parameter...
-        return self.parameter.__getattribute__(item)
 
     def __bool__(self):
         return bool(self.parameter)
@@ -121,9 +113,6 @@ class OptionsConfigParameter(ConfigParameter):
 
         if not len(self.options):
             self.options = {default}
-
-    def __len__(self) -> int:
-        return len(self.parameter)
 
     def set(self, value: Any) -> None:
         if value not in self.options:

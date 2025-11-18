@@ -45,7 +45,7 @@ class Impedance(DependantPhysicalQuantity):
                          var_symbol="s",
                          tol=tol)
         
-    def simplify(self, **kwargs):
+    def simplify(self):
         #TODO add argument to allow "almost equals"
 
         # remove anything smaller than tolerance
