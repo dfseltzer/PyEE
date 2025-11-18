@@ -28,6 +28,7 @@ class BuckFixedFrequency(FixedFrequencySMPS):
         fs = format_fs(inputobj=fs, defaultunits=self._defaults["fs_units"], 
                        inputunits=kwargs.pop("fs_units", None))
         super().__init__(fs, **kwargs)
+        
         if isinstance(L, Inductor):
             self.L = L.copy()
         else:
