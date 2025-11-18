@@ -62,6 +62,15 @@ class NumericConfigParameter(ConfigParameter):
     def __init__(self, default: float=1.0) -> None:
         self.parameter = float(default)
 
+    def __float__(self):
+        return float(self.parameter)
+    
+    def __int__(self):
+        return int(self.parameter)
+
+    def __abs__(self):
+        return abs(self.parameter)
+
     def __mul__(self, other):
         return self.parameter * other
 

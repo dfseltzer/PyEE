@@ -19,6 +19,8 @@ from pyee.exceptions import UnitsMissmatchException
 from pyee import DEFAULT_FREQUENCY_UNITS, ERROR_ON_UNIT_MISSMATCH
 
 class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
+    _UNITS = Units.from_string("") # placeholder - subs should overwrite.
+
     @classmethod
     def from_string(cls, ustring: str, *args, **kwargs):
         """

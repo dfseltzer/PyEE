@@ -24,12 +24,13 @@ import logging
 from typing import Callable
 from functools import singledispatchmethod
 
+from pyee.config import ConfigParameter
 from pyee.config import OptionsConfigParameter # import so we can register for single dispatch... do we need to?
 from pyee.utilities import load_data_file
 from pyee.exceptions import UnitsMissmatchException, UnitsConversionException, UnitsConstructionException
 
 type t_UnitObj = Units
-type t_UnitsSource = str | dict | t_UnitObj | None
+type t_UnitsSource = str | dict | t_UnitObj | None | ConfigParameter
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,5 @@
 """
-Buck Converter
+Full Bridge Converters
 """
 
 from .smps import FixedFrequencySMPS, format_fs
@@ -7,16 +7,16 @@ from ..passives import Inductor
 
 from enum import Enum
 
-def Buck(bucktype, *args, **kwargs):
-    if bucktype is BuckTypes.FixedFrequency:
-        return BuckFixedFrequency(*args, **kwargs)
+def FullBridge(fbtype, *args, **kwargs):
+    if fbtype is FullBridgeTypes.FixedFrequency:
+        return FullBridgeFixedFrequency(*args, **kwargs)
     else:
-        raise TypeError(f"Unknown Buck converter asked for: {bucktype}")
+        raise TypeError(f"Unknown Buck converter asked for: {fbtype}")
 
-class BuckTypes(Enum):
+class FullBridgeTypes(Enum):
     FixedFrequency = 1
 
-class BuckFixedFrequency(FixedFrequencySMPS):
+class FullBridgeFixedFrequency(FixedFrequencySMPS):
     _defaults = {"fs_units": "Hz"}
 
     def __init__(self, fs, L, **kwargs) -> None:
@@ -28,11 +28,12 @@ class BuckFixedFrequency(FixedFrequencySMPS):
         fs = format_fs(inputobj=fs, defaultunits=self._defaults["fs_units"], 
                        inputunits=kwargs.pop("fs_units", None))
         super().__init__(fs, **kwargs)
+
         if isinstance(L, Inductor):
             self.L = L.copy()
         else:
             self.L = Inductor.from_string(L)
-
+        
         self.state = {"vin": None, "vout": None, "iout": None}
 
 

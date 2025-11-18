@@ -9,17 +9,19 @@ logger = logging.getLogger(__name__)
 
 import numpy as np
 
-from pyee.types.physicalquantity import DependantPhysicalQuantity
-
 from pyee import GLOBAL_TOLERANCE
+from pyee.config import ConfigParameter
+from pyee.types.aliases import t_listTuple, t_numeric
 from pyee.exceptions import UnitsMissmatchException
+from pyee.types.physicalquantity import DependantPhysicalQuantity
 
 class Impedance(DependantPhysicalQuantity):
     """
     Represents an impedance as a numerator and denominator polynomial in 's'
     """
 
-    def __init__(self, num, den, frequency=1000, frequency_units="Hz", tol=GLOBAL_TOLERANCE, *args, **kwargs):
+    def __init__(self, num:t_listTuple, den:t_listTuple, frequency:None|t_numeric=None, 
+                 frequency_units:str|ConfigParameter="Hz", tol=GLOBAL_TOLERANCE, *args, **kwargs):
         """
         Num and den are arrays of coefficients for increasing powers of s, where the array index is the power of s.
 
@@ -47,8 +49,8 @@ class Impedance(DependantPhysicalQuantity):
         #TODO add argument to allow "almost equals"
 
         # remove anything smaller than tolerance
-        self.num = np.where(abs(self.num) <= self.tol, 0, self.num)
-        self.den = np.where(abs(self.den) <= self.tol, 0, self.den)
+        self.num = np.where(abs(self.num) <= float(self.tol), 0, self.num)
+        self.den = np.where(abs(self.den) <= float(self.tol), 0, self.den)
 
         # remove common zero roots if they exist
         numzeros = np.argmin(self.num <= self.tol)
