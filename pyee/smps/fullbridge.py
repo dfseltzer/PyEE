@@ -47,6 +47,7 @@ class FullBridgeFixedFrequency(FixedFrequencySMPS):
         peak magnetizing current
         v = L*di/dt -> di = v*dt/L -> ilm_pk = v*(D*Ts)/(2*L)
         """
+        assert isinstance(state, dict)
         val = np.divide(state["vin"]*state["D"]*self.Ts.value, 2*self.L.value)
         return PhysicalQuantity(val, "", "A")
     
