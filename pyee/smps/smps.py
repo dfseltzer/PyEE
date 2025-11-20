@@ -71,6 +71,8 @@ class FixedFrequencySMPS(ABC, object):
         self._fs = fs
         self._Ts = 1/self._fs
 
+        self.state = dict()
+
     @property
     def fs(self):
         return self._fs
@@ -88,3 +90,10 @@ class FixedFrequencySMPS(ABC, object):
     def Ts(self, val):
         self._Ts.value = val
         self._fs.value = 1/val
+
+    def state_template(self) -> dict:
+        """
+        Returns a template state dictionary that can be filled in with values and passed back to 
+        functions as needed.
+        """
+        return {k:None for k in self.state.keys()}

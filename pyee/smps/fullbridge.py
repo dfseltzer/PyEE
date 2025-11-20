@@ -2,10 +2,15 @@
 Full Bridge Converters
 """
 
+
 from .smps import FixedFrequencySMPS, format_fs
 from ..passives import Inductor
+from ..types.physicalquantity import PhysicalQuantity
+from ..types.decorators import state_check
 
 from enum import Enum
+
+import numpy as np
 
 def FullBridge(fbtype, *args, **kwargs):
     if fbtype is FullBridgeTypes.FixedFrequency:
@@ -34,7 +39,15 @@ class FullBridgeFixedFrequency(FixedFrequencySMPS):
         else:
             self.L = Inductor.from_string(L)
         
-        self.state = {"vin": None, "vout": None, "iout": None}
+        self.state = {"vin": None, "D": None, "iout": None}
 
-
+    @state_check ("vin", "D")
+    def ilm_pk(self, state=None):
+        """
+        peak magnetizing current
+        v = L*di/dt -> di = v*dt/L -> ilm_pk = v*(D*Ts)/(2*L)
+        """
+        val = np.divide(state["vin"]*state["D"]*self.Ts.value, 2*self.L.value)
+        return PhysicalQuantity(val, "", "A")
+    
     
