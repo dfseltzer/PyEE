@@ -55,9 +55,12 @@ def polymul(c1, c2):
     for e1, a in enumerate(c1):
         for e2, b in enumerate(c2):
             fullmul[e1+e2] += a*b
-    
+
     sqmul = fullmul.squeeze()
-    nzi = np.max(sqmul.nonzero())+1
+    nonzero_indices = sqmul.nonzero()[0]
+
+    # If all zeros, return [0]; otherwise trim to last nonzero coefficient
+    nzi = np.max(nonzero_indices) + 1 if nonzero_indices.size > 0 else 1
     rval = sqmul[:nzi]
 
     return rval

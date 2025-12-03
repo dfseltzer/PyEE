@@ -66,12 +66,24 @@ def format_fs(inputobj : t_PQSource, defaultunits: t_UnitsSource, inputunits: t_
     return fsobj
 
 class FixedFrequencySMPS(ABC, object):
+    state_variables = []
+
     def __init__(self, fs : t_PQObj, **kwargs) -> None:
         super().__init__()
         self._fs = fs
         self._Ts = 1/self._fs
 
         self.state = dict()
+
+    # make sure sub clases define the state variable list...
+    def __init_subclass__(cls, *args, **kwargs) -> None:
+        super().__init_subclass__(*args, **kwargs)
+        # Not needed anymore but keep in case... 
+        # Check that subclasses define the attribute
+        # if "state_variables" not in cls.__dict__:
+        #     raise TypeError(
+        #         f"Subclass {cls.__name__!r} must define a class attribute 'state_variables'"
+        #     )
 
     @property
     def fs(self):
@@ -97,3 +109,54 @@ class FixedFrequencySMPS(ABC, object):
         functions as needed.
         """
         return {k:None for k in self.state.keys()}
+
+    def update_state(self, newstate):
+        """
+        Update current state with new state values.  Keep any existing values that do not have new inputs.
+        """
+        for k, v in newstate.items():
+            if k not in self.state:
+                logger.warning(f"New state added in update_state?  {k} did not exist.  Adding and setting to {v}")
+            self.state[k] = v
+
+    def set_state(self, newstate):
+        """
+        Replace the current state array with the given one
+        """
+        for k in self.state.keys():
+            if k not in newstate:
+                logger.error(f"New state is missing key {k} - this may break your model!")
+        
+        for k, v in newstate.items():
+            if k not in self.state:
+                logger.warning(f"New state added in set_state?  {k} did not exist.  Adding and setting to {v}")
+            self.state[k] = v
+
+    def __getattr__(self, name):
+        """
+        Called only if normal attribute lookup fails.
+        Try to return from state; otherwise raise AttributeError normally.
+        """
+        try:
+            return self.state[name]
+        except KeyError:
+            raise AttributeError(f"{self.__class__.__name__!r} object has no attribute {name!r}")
+    
+    def __setattr__(self, name, value):
+        """
+        Called for *all* attribute sets.
+        Write to real attributes unless they don't exist,
+        in which case write to state.
+        """
+
+        # Avoid recursion when initializing 'state'
+        if name == "state":
+            return super().__setattr__(name, value)
+
+        # Check if state exists, otherwise infinite issues on initialization depending on order we add attributes..
+        if "state" in self.__dict__ and name in self.state:
+            self.state[name] = value
+            return
+
+        # Otherwise store it in the state dictionary
+        super().__setattr__(name, value)

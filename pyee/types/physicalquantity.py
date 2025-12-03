@@ -5,7 +5,7 @@ Physical Quantity  and derived classes
 import numpy as np
 
 import logging
-import copy
+import numbers
 
 from abc import ABCMeta
 from abc import abstractmethod
@@ -30,6 +30,18 @@ type t_PQObj = PhysicalQuantity
 type t_DPQObj = DependantPhysicalQuantity
 
 logger = logging.getLogger(__name__)
+
+def value_from_any(inobj):
+    """
+    Returns a scalar value, given either a physical quantity or a value
+    """
+    if isinstance(inobj, (int, numbers.Number)):
+        return inobj
+    
+    try:
+        return inobj.value
+    except Exception as e:
+        raise ValueError(f"Unable to convert {inobj}(type: {type(inobj)}) to a numeric.") from e
 
 class PhysicalQuantityBase(object, metaclass=ABCMeta):
     @classmethod
@@ -75,6 +87,8 @@ class PhysicalQuantity(PhysicalQuantityBase):
         Create a new Physical Quantity from a value and optional unit.
         """
         if cls.__DEBUG: logger.error(f"Creating PQ from value={value}, units={units}")
+        if isinstance(value, PhysicalQuantity): # we are just changing units here...
+            value = value.value
         v, p = vp_from_number(value)
         u = Units.from_any(units)
         return cls(v, p, u, **kwargs)
@@ -149,7 +163,7 @@ class PhysicalQuantity(PhysicalQuantityBase):
         elif ERROR_ON_UNITLESS_OPERATORS: # try as scalar? Assuming units..
             raise TypeError(f"Unable to add - no units on other? Acting on [{self}] + [{other}]")
         else: # try as scalar? Assuming units..
-            logger.warning(f"Assuming units for addition: {self} + {other}")
+            logger.debug(f"Assuming units for addition: {self} + {other}")
             nv, np = vp_from_number(self.v*self.p + other)
         return PhysicalQuantity(value=nv, prefix=np, units=self.u)
 
@@ -164,7 +178,7 @@ class PhysicalQuantity(PhysicalQuantityBase):
         elif ERROR_ON_UNITLESS_OPERATORS: # try as scalar? Assuming units..
             raise TypeError(f"Unable to divide - no units on other? Acting on [{self}] / [{other}]")
         else: # try as scalar? Assuming units..
-            logger.warning(f"Assuming units for division: {self}/{other}")
+            logger.debug(f"Assuming units for division: {self}/{other}")
             nv, np = vp_from_number((self.v*self.p)/other)
             nu = self.u
         return PhysicalQuantity(value=nv, prefix=np, units=nu)
@@ -205,6 +219,12 @@ class PhysicalQuantity(PhysicalQuantityBase):
 
     def __ne__(self, other):
         return not self.__eq__(other)
+
+    def __array__(self, dtype=None, copy=None):
+        # Numpy array compatability stuff...
+        if copy is False:
+            logger.error(f"Cannot pass copy=false... will always copy.")
+        return np.array(self.value)
 
     @property
     def value(self):
@@ -412,7 +432,7 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
         elif ERROR_ON_UNITLESS_OPERATORS: # try as scalar? Assuming units..
             raise TypeError(f"Unable to subtract - no units on other? Acting on [{self}] - [{other}]")
         else: # try as scalar? Assuming units..
-            logger.warning(f"Assuming units for subtraction: {self} - {other}")
+            logger.debug(f"Assuming units for subtraction: {self} - {other}")
             nd = self.den.copy() # type: ignore
             num_a = self.num
             num_b = self.den*other #type: ignore
@@ -440,7 +460,7 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
         elif ERROR_ON_UNITLESS_OPERATORS: # try as scalar? Assuming units..
             raise TypeError(f"Unable to subtract - no units on other? Acting on [{other}] - [{self}]")
         else: # try as scalar? Assuming units..
-            logger.warning(f"Assuming units for subtraction: {other} - {self}")
+            logger.debug(f"Assuming units for subtraction: {other} - {self}")
             nd = self.den.copy() # type: ignore
             num_a = self.num
             num_b = self.den*other #type: ignore
@@ -468,7 +488,7 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
         elif ERROR_ON_UNITLESS_OPERATORS: # try as scalar? Assuming units..
             raise TypeError(f"Unable to add - no units on other? Acting on [{self}] + [{other}]")
         else: # try as scalar? Assuming units..
-            logger.warning(f"Assuming units for addition: {self} + {other}")
+            logger.debug(f"Assuming units for addition: {self} + {other}")
             nd = self.den.copy() # type: ignore
             num_a = self.num
             num_b = self.den*other #type: ignore
@@ -496,7 +516,7 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
         elif ERROR_ON_UNITLESS_OPERATORS: # try as scalar? Assuming units..
             raise TypeError(f"Unable to subtract - no units on other? Acting on [{other}] + [{self}]")
         else: # try as scalar? Assuming units..
-            logger.warning(f"Assuming units for raddition: {other} + {self}")
+            logger.debug(f"Assuming units for raddition: {other} + {self}")
             nd = self.den.copy() # type: ignore
             num_a = self.num
             num_b = self.den*other #type: ignore
@@ -520,7 +540,7 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
         elif ERROR_ON_UNITLESS_OPERATORS: # try as scalar? Assuming units..
             raise TypeError(f"Unable to divide - no units on other? Acting on [{self}] / [{other}]")
         else: # try as scalar? Assuming units..
-            logger.warning(f"Assuming units for division: {self} / {other}")
+            logger.debug(f"Assuming units for division: {self} / {other}")
             nn = self.num.copy() #type: ignore
             nd = self.den*(other)
             nu = self.u/other.u
@@ -544,7 +564,7 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
         else: # try as scalar? Assuming units..
             nn = self.den.copy()*(other) #type: ignore
             nd = self.num.copy() #type: ignore
-            logger.warning(f"Inverting Units: self.u={self.u}")
+            logger.debug(f"Inverting Units: self.u={self.u}")
             nu = 1/self.u
         return DependantPhysicalQuantity(num=nn, den=nd, units=nu, **varargs)
 
@@ -613,6 +633,8 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
             self._var0 = PhysicalQuantity(value=nv, prefix=np, units=self._var0.u) # type: ignore
 
     def simplify(self, **kwargs) -> t_DPQObj:
+        #TODO - this needs to be implemented.
+        raise NotImplementedError(f"Simplify is not working yet...")
         newunits = self.u.simplify(**kwargs)
         newvar0 = self._var0.copy() if self._var0 is not None else None
         newobj = self.copy()
