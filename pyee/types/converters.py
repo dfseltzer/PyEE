@@ -12,7 +12,18 @@ logger = logging.getLogger(__name__)
 
 def vp_from_number(number: t_numeric) -> tuple[t_numeric, t_PrefixObj]:
     """
-    Convert a number to a value an prefix
+    Converts a numeric value to a tuple containing the scaled value and its corresponding prefix object.
+
+    Args:
+        number (t_numeric): The numeric value to be converted.
+
+    Returns:
+        tuple[t_numeric, t_PrefixObj]: A tuple where the first element is the scaled value (number divided by the prefix factor),
+        and the second element is the prefix object representing the scaling factor.
+
+    Example:
+        >>> vp_from_number(1000)
+        (1.0, Prefix('kilo', 'k', 1000))
     """
     p = Prefix.from_number(number)
     v = number/p.f # avoid python calling __rdiv__ on each element for lists
@@ -20,24 +31,25 @@ def vp_from_number(number: t_numeric) -> tuple[t_numeric, t_PrefixObj]:
 
 def vpu_from_ustring(ustring : str) -> tuple[t_numeric, "Prefix", "Units"]:
     """
-    Convert a unit string into [Value, Prefix, Unit] set
-    For example,       10uH =  [10,       <u>,  <H>], where <u> is a Prefix instance,
-    and <H> is a Unit instance.
-
-    Strings that will work well include...
-        - Numbers: "100" or "1.23"
-        -- Include no spaces
-        -- Anything python can convert into an integer or float will work
-        - Numbers with a prefix: "100u" or "1.23p"
-        -- Standard SI prefixes only
-        -- Do not include a space between prefix and number
-        - Numbers with a prefix and unit: "100u H", "1.23p F"
-        -- Standard SI prefixes only
-        -- Do not include a space between prefix and number
-        -- Include a space between prefix and units
-        -- Any unit that the Unit class can parse will work
-
-    Returns: [Value, Prefix, Unit]
+    Converts a unit string into a tuple of (value, prefix, unit).
+    This function parses a string representing a value with an optional SI prefix and unit,
+    and returns a tuple containing the numeric value, a Prefix instance, and a Units instance.
+    Examples:
+        "10uH"   -> (10, <Prefix 'u'>, <Units 'H'>)
+        "100"    -> (100, <Prefix ''>, <Units ''>)
+        "1.23p F"-> (1.23, <Prefix 'p'>, <Units 'F'>)
+    Accepted formats:
+          (No spaces, any valid Python float or int)
+        - Numbers with prefix: "100u" or "1.23p"
+          (No space between number and prefix, standard SI prefixes only)
+        - Numbers with prefix and unit: "100u H", "1.23p F"
+          (Space between prefix and unit, no space between number and prefix, standard SI prefixes only)
+    Args:
+        ustring (str): The input string to parse.
+    Returns:
+        tuple[t_numeric, Prefix, Units]: A tuple containing the numeric value, Prefix instance, and Units instance.
+    Raises:
+        ValueError: If the input string cannot be parsed into a value, prefix, and unit.
     """
 
     parts = ustring.split(" ")

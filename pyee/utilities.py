@@ -23,7 +23,7 @@ def load_data_file(fname):
     :return: data loaded from file as dict
     """
 
-    full_path = pathlib.Path(DATA_ABS_PATH, fname+".json")
+    full_path = pathlib.Path(DATA_ABS_PATH, fname+".json") # type: ignore
 
     with open(full_path,"r") as fobj:
         fdat = json.load(fobj)
