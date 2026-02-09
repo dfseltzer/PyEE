@@ -25,8 +25,6 @@ ERROR_ON_UNIT_MISSMATCH = BooleanConfigParameter(False)
 # Default frequency units to use
 DEFAULT_FREQUENCY_UNITS = OptionsConfigParameter("Hz", options={"Hz", "Rad"})
 
-
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING)
 
