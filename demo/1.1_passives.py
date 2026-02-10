@@ -2,7 +2,6 @@
 import pyee
 import pyee.exceptions
 from pyee.passives import Resistor, Capacitor
-import pyee.passives
 
 from pyee.exceptions import UnitsMissmatchException
 

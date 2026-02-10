@@ -25,7 +25,6 @@ class TestCase_create(unittest.TestCase):
         self.assertEqual(L2.v, 1.0)
         self.assertEqual(L2.p.s, "m")
 
-
 if __name__ == '__main__':
     import logging
     logging.getLogger().setLevel(logging.INFO)
