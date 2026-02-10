@@ -322,7 +322,7 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
                  var0: t_numeric | PhysicalQuantity | None=None, 
                  var_units : t_UnitsSource| None=None, 
                  var_symbol: str = "x", 
-                 tol: float=GLOBAL_TOLERANCE):
+                 tol=GLOBAL_TOLERANCE) -> None:
         """
         :param num: numerator array
         :param den: denominator array
@@ -349,7 +349,7 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
         return type(self)(num=self.num.copy(),
                           den=self.den.copy(),
                           units=self.u.copy(),
-                          var0=self._var0.copy() if self._var0 is not None else None,
+                          var0=self._var0.copy() if self._var0 is not None else None, # type: ignore
                           var_symbol=self._var_symbol, 
                           tol=self.tol)
 
@@ -632,14 +632,14 @@ class DependantPhysicalQuantity(PhysicalQuantityBase):
             nv, np = vp_from_number(val)
             self._var0 = PhysicalQuantity(value=nv, prefix=np, units=self._var0.u) # type: ignore
 
-    def simplify(self, **kwargs) -> t_DPQObj:
-        #TODO - this needs to be implemented.
-        raise NotImplementedError(f"Simplify is not working yet...")
-        newunits = self.u.simplify(**kwargs)
-        newvar0 = self._var0.copy() if self._var0 is not None else None
-        newobj = self.copy()
+    def copy(self) -> t_DPQObj:
+        return self.__copy__()
 
-        newobj.reduce_to_tol()        
+    def simplify(self, **kwargs) -> t_DPQObj:
+        newobj = self.copy()
+        newobj.u = self.u.simplify(**kwargs)
+        newobj._var0 = self._var0.copy() if self._var0 is not None else None
+        newobj.reduce_to_tol()  
         return newobj
 
     def reduce_to_tol(self):

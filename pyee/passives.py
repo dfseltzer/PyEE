@@ -26,7 +26,7 @@ class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
     def __init__(self, value:object, *args, **kwargs) -> None:
         raise ValueError(f"Cannot construct {type(self)} from {value} of type {type(value)}")
 
-    @__init__.register
+    @__init__.register(int | float)
     def _(self, value: t_numeric, *args, **kwargs) -> None:
         """
         Create a PassiveComponent from a numeric value.
@@ -37,21 +37,20 @@ class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
         """
         v, val_p = vp_from_number(value)
         
-        arg_u = kwargs.get("units", self.default_units.copy())
+        arg_u = kwargs.pop("units", self.default_units.copy())
         if arg_u != self.default_units: # argument passed but it was incorrect...
             raise UnitsMissmatchException(self.default_units, arg_u, "init", 
                 notes=f"Creating new PassiveComponent with incorrect units... started with {arg_u}")
         else: # argument passed... was correct... use it.
             u = arg_u
 
-        arg_p = kwargs.get("prefix", None)
-        if arg_p is not None: # need to combine
-            p = val_p*arg_p
+        arg_p = kwargs.pop("prefix", None)
+        p = val_p*arg_p if arg_p is not None else val_p
         
         # Now have v, p, u.... can create a component.
         super().__init__(v, p, u, *args, **kwargs)
 
-    @__init__.register
+    @__init__.register(str)
     def _(self, value: str, *args, **kwargs) -> None:
         """
         Create a PassiveComponent from a string
@@ -61,7 +60,7 @@ class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
         :return: PassiveComponent instance
         """
         v, val_p, val_u = vpu_from_ustring(value)
-        arg_u = kwargs.get("units", self.default_units.copy())
+        arg_u = kwargs.pop("units", self.default_units.copy())
 
         if (not val_u.unitless) and (val_u != arg_u):
             raise UnitsMissmatchException(self.default_units, arg_u, "init", 
@@ -75,9 +74,8 @@ class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
         else: # argument passed and is fine... use it.
             u = arg_u
 
-        arg_p = kwargs.get("prefix", None)
-        if arg_p is not None: # need to combine
-            p = val_p*arg_p
+        arg_p = kwargs.pop("prefix", None)
+        p = val_p*arg_p if arg_p is not None else val_p
 
         # Now have v, p, u.... can create a component.
         super().__init__(v, p, u, *args, **kwargs)
@@ -109,9 +107,9 @@ class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
     def __or__(self, other):
         try:
             nv = self * other / (self + other)
-            return {"Ohm": lambda o: Resistor.from_value(value=o.v*o.p),
-                    "F": lambda o: Capacitor.from_value(value=o.v*o.p),
-                    "L": lambda o: Inductor.from_value(value=o.v*o.p)}.get(str(nv.u), lambda o: o)(nv)
+            return {"Ohm": lambda o: Resistor(o.v*o.p),
+                    "F": lambda o: Capacitor(o.v*o.p),
+                    "L": lambda o: Inductor(o.v*o.p)}.get(str(nv.u), lambda o: o)(nv)
         except (TypeError, AttributeError) as _:
             logger.warning(f"Unable to parallel natively - converting to impedance... {self} and {other}")
         
@@ -123,9 +121,9 @@ class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
         #TODO if units are the same on self and other, return correct passive type if possible
         try:
             nv = other * self / (other + self)
-            return {"Ohm": lambda o: Resistor.from_value(value=o.v * o.p),
-                    "F": lambda o: Capacitor.from_value(value=o.v * o.p),
-                    "L": lambda o: Inductor.from_value(value=o.v * o.p)}.get(str(nv.u), lambda o: o)(nv)
+            return {"Ohm": lambda o: Resistor(o.v * o.p),
+                    "F": lambda o: Capacitor(o.v * o.p),
+                    "L": lambda o: Inductor(o.v * o.p)}.get(str(nv.u), lambda o: o)(nv)
         except (TypeError, AttributeError) as _:
             logger.warning(f"Unable to parallel natively - converting to impedance... {other} and {self}")
         

@@ -8,9 +8,9 @@ from pyee.exceptions import UnitsMissmatchException
 pyee.logger.setLevel(level=20) # info
 #pyee.logger.setLevel(level=50) # above error... basically off...
 
-R1 = Resistor.from_value(1000)
-R2 = Resistor.from_value(125)
-C1 = Capacitor.from_value(1e-6)
+R1 = Resistor(1000)
+R2 = Resistor(125)
+C1 = Capacitor(1e-6)
 
 print(f"Resistor Addition: {R1} + {R2} = {R1+R2}")
 print(f"Trying to add R1 = {R1} to C1 = {C1}")
