@@ -7,57 +7,80 @@ import logging
 logger = logging.getLogger(__name__)
 
 from abc import ABCMeta, abstractmethod
+from functools import singledispatchmethod
+
 from pyee.types.physicalquantity import PhysicalQuantity
-from pyee.types.prefixes import t_PrefixObj
+from pyee.types.prefixes import Prefix, t_PrefixObj
 from pyee.types.units import Units, t_UnitObj
 from pyee.types.impedance import Impedance
 from pyee.types.aliases import t_numeric
 from pyee.types.converters import vp_from_number, vpu_from_ustring
 
 from pyee.exceptions import UnitsMissmatchException
-
 from pyee import DEFAULT_FREQUENCY_UNITS, ERROR_ON_UNIT_MISSMATCH
 
 class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
     _UNITS = Units.from_string("") # placeholder - subs should overwrite.
 
-    @classmethod
-    def from_string(cls, ustring: str, *args, **kwargs):
+    @singledispatchmethod
+    def __init__(self, value:object, *args, **kwargs) -> None:
+        raise ValueError(f"Cannot construct {type(self)} from {value} of type {type(value)}")
+
+    @__init__.register
+    def _(self, value: t_numeric, *args, **kwargs) -> None:
+        """
+        Create a PassiveComponent from a numeric value.
+        :param t_numeric value: numeric value to use
+        :param str prefix: OPTIONAL units prefix to use.  If not specified, uses '1' (no prefix)
+        :param any units: OPTIONAL units to use.  If not specified, uses the class default.
+        :return: PassiveComponent instance
+        """
+        v, val_p = vp_from_number(value)
+        
+        arg_u = kwargs.get("units", self.default_units.copy())
+        if arg_u != self.default_units: # argument passed but it was incorrect...
+            raise UnitsMissmatchException(self.default_units, arg_u, "init", 
+                notes=f"Creating new PassiveComponent with incorrect units... started with {arg_u}")
+        else: # argument passed... was correct... use it.
+            u = arg_u
+
+        arg_p = kwargs.get("prefix", None)
+        if arg_p is not None: # need to combine
+            p = val_p*arg_p
+        
+        # Now have v, p, u.... can create a component.
+        super().__init__(v, p, u, *args, **kwargs)
+
+    @__init__.register
+    def _(self, value: str, *args, **kwargs) -> None:
         """
         Create a PassiveComponent from a string
         :param ustring: string to parse
+        :param str prefix: OPTIONAL units prefix to use.  If not specified, uses '1' (no prefix)
+        :param any units: OPTIONAL units to use.  If not specified, uses the class default.
         :return: PassiveComponent instance
         """
-        v, p, u = vpu_from_ustring(ustring)
-        return cls(v, p, u, *args, **kwargs)
+        v, val_p, val_u = vpu_from_ustring(value)
+        arg_u = kwargs.get("units", self.default_units.copy())
 
-    @classmethod
-    def from_value(cls, value: t_numeric, *args, **kwargs):
-        """
-        Create a PassiveComponent from a numeric value
-        :param value: numeric value to use
-        :return: PassiveComponent instance
-        """
-        v, p = vp_from_number(value)
-        return cls(v, p, cls._UNITS, *args, **kwargs)
+        if (not val_u.unitless) and (val_u != arg_u):
+            raise UnitsMissmatchException(self.default_units, arg_u, "init", 
+                notes=f"Creating new PassiveComponent, string had units {val_u}, "
+                "but found units {arg_u} in arguments or from default. "
+                "Check values!")
 
-    def __init__(self, value:t_numeric, prefix:t_PrefixObj, units:t_UnitObj, *args, **kwargs) -> None:
-        if (self.default_units is not None) and (units != self.default_units):
-            if units.unitless:
-                units = self.default_units.copy()
-            else: # no units is OK - use default. if wrong units give... raise issue with it.
-                try:
-                    su = units.simplify()
-                except AttributeError as _:
-                    su = Units.create_unitless()
-                
-                if su != self.default_units:
-                    raise UnitsMissmatchException(self.default_units, units, "init", 
-                                                  notes=f"Creating new PassiveComponent with incorrect units... "
-                                                  "started with {units}")
-                else:
-                    units = su
-        super().__init__(value, prefix, units, *args, **kwargs)
+        if arg_u != self.default_units: # argument passed but it was incorrect...
+            raise UnitsMissmatchException(self.default_units, arg_u, "init", 
+                notes=f"Creating new PassiveComponent with incorrect units... started with {arg_u}")
+        else: # argument passed and is fine... use it.
+            u = arg_u
+
+        arg_p = kwargs.get("prefix", None)
+        if arg_p is not None: # need to combine
+            p = val_p*arg_p
+
+        # Now have v, p, u.... can create a component.
+        super().__init__(v, p, u, *args, **kwargs)
 
     def __add__(self, value):
         try:
