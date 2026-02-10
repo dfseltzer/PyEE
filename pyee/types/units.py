@@ -23,6 +23,8 @@ import logging
 
 from typing import Callable
 
+from functools import singledispatchmethod
+
 from pyee.config import ConfigParameter
 from pyee.config import OptionsConfigParameter # import so we can register for single dispatch... do we need to?
 from pyee.utilities import load_data_file
@@ -55,6 +57,7 @@ class Units(object):
     CONTEXTS = dict()
     __DEBUG=False
 
+    # TODO change this to calling units with no arguments
     @classmethod
     def create_unitless(cls, **kwargs) -> t_UnitObj:
         """
@@ -189,6 +192,8 @@ class Units(object):
         obj = cls(sdict_clean, **kwargs)
         return obj
 
+    # TODO make the default fallback constructor act like the "from any" for possible other objects
+    @singledispatchmethod
     def __init__(self, s : dict, context : str = "Electrical") -> None:
         """
         Units class.  Should be called from one of the .from_* class methods
@@ -210,6 +215,19 @@ class Units(object):
         super().__init__()
         self.s = s
         self.context = context
+
+    # TODO implement these constructors
+    @__init__.register(str)
+    def _(self, ustring: str, context : str = "Electrical", **kwargs) -> None:
+        pass
+
+    @__init__.register(dict)
+    def _(self, s: dict, context : str = "Electrical",  **kwargs) -> None:
+        pass
+
+    @__init__.register(Units)
+    def _(self, other: t_UnitObj, context: str= "Electrical", **kwargs) -> None:
+        pass
 
     def __copy__(self):
         ns = self.s.copy() # dictionary, so copy it
