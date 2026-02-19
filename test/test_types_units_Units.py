@@ -4,13 +4,13 @@ from pyee.types.units import Units
 
 class TestCase_from_string(unittest.TestCase):
     def test_create_empty_units_function(self):
-        u = Units.create_unitless()
-        self.assertDictEqual(u.s, {})
+        with self.assertRaises(TypeError):
+            Units()
 
     def test_create_empty_units_string(self):
         empty_strs = ["1", "1/1", "1/(1)", "(1)/1", "s/s", "s.s^-1"]
         for ustring in empty_strs:
-            u = Units.from_string(ustring)
+            u = Units(ustring)
             self.assertDictEqual(u.s, {})
 
     def test_create_empty_units_direct(self):
@@ -24,7 +24,7 @@ class TestCase_from_string(unittest.TestCase):
                      "m^-1.s":{"m": -1, "s": 1},
                      "m.s.kg^2":{"m": 1, "s": 1, "kg":2}}
         for ustring, sdict in test_sets.items():
-            u = Units.from_string(ustring)
+            u = Units(ustring)
             self.assertDictEqual(u.s, sdict)
 
     def test_create_simple_2(self):
@@ -35,7 +35,7 @@ class TestCase_from_string(unittest.TestCase):
                      "(m^-1).s":{"m": -1, "s": 1},
                      "m.(s).kg^2":{"m": 1, "s": 1, "kg":2}}
         for ustring, sdict in test_sets.items():
-            u = Units.from_string(ustring)
+            u = Units(ustring)
             self.assertDictEqual(u.s, sdict)
 
     def test_create_unit_denominator(self):
@@ -45,7 +45,7 @@ class TestCase_from_string(unittest.TestCase):
                      "s^2/(1)":{"s": 2},
                      "s^-1/1":{"s": -1}}
         for ustring, sdict in test_sets.items():
-            u = Units.from_string(ustring)
+            u = Units(ustring)
             self.assertDictEqual(u.s, sdict)
 
     def test_create_unit_numerator(self):
@@ -56,7 +56,7 @@ class TestCase_from_string(unittest.TestCase):
                      "1/(s^2)":{"s": -2},
                      "1/s^-1":{"s": 1}}
         for ustring, sdict in test_sets.items():
-            u = Units.from_string(ustring)
+            u = Units(ustring)
             self.assertDictEqual(u.s, sdict)
 
     def test_create_multiple_den(self):
@@ -67,7 +67,7 @@ class TestCase_from_string(unittest.TestCase):
                      "kg/s/A/s":{"kg": 1, "s": -2, "A":-1},
                      "m/kg/(A.s)":{"m": 1, "kg": -1, "s": -1, "A":-1}}
         for ustring, sdict in test_sets.items():
-            u = Units.from_string(ustring)
+            u = Units(ustring)
             self.assertDictEqual(u.s, sdict)
 
     def test_create_dots(self):
@@ -79,7 +79,7 @@ class TestCase_from_string(unittest.TestCase):
   #                   "(.kg)/A/s/A":{"kg": 1, "A": -2, "s":-1},
    #                  "m/.kg./(A.s...)":{"m": 1, "kg": -1, "s": -1, "A":-1}}
         for ustring, sdict in test_sets.items():
-            u = Units.from_string(ustring)
+            u = Units(ustring)
             self.assertDictEqual(u.s, sdict)
 
     def test_create_full(self):
@@ -91,7 +91,7 @@ class TestCase_from_string(unittest.TestCase):
                      "kg/s":{"kg": 1, "s": -1},
                      "kg/(1.s)":{"kg": 1, "s": -1}}
         for ustring, sdict in test_sets.items():
-            u = Units.from_string(ustring)
+            u = Units(ustring)
             self.assertDictEqual(u.s, sdict)
 
 class TestCase_units_maths(unittest.TestCase):
@@ -100,15 +100,15 @@ class TestCase_units_maths(unittest.TestCase):
                      ["1","1"],
                      ["kg^2","kg.kg"]]
         for u1s, u2s in test_sets:
-            u1 = Units.from_string(u1s)
-            u2 = Units.from_string(u2s)
+            u1 = Units(u1s)
+            u2 = Units(u2s)
             self.assertTrue(u1 == u2, msg=f"{u1s} and {u2s}")
 
 class TestCase_convert_to_Frequency(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.u_Hz = Units.from_string("Hz")
-        cls.u_Rad = Units.from_string("Rad")
+        cls.u_Hz = Units("Hz")
+        cls.u_Rad = Units("Rad")
 
     def test_same_to_same(self):
         fconv1 = self.u_Hz.convert_to(self.u_Hz)

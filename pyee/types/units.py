@@ -21,7 +21,7 @@ Attempting to write pascals as "kg/m.s^2" is incorrect.
 import re
 import logging
 
-from typing import Callable
+from typing import Callable, Any
 
 from functools import singledispatchmethod
 
@@ -48,59 +48,16 @@ def load_unit_context(context: str) -> dict:
     fname = f"SI_units_{context.lower()}"
     rdat = load_data_file(fname)
     subs = rdat.pop("_subs",dict())
-    cdat = {s: {"n":d["name"], "info":d["quantity"], "u":Units.from_string(d["base"]), 
+    cdat = {s: {"n":d["name"], "info":d["quantity"], "u":Units(d["base"]), 
                 "c": d.get("conversions", dict())} for s, d in rdat.items()}
-    cdat["_subs"] = {k: (Units.from_string(k, context=context), Units.from_string(v, context=context)) for k, v in subs.items()}
+    cdat["_subs"] = {k: (Units(k, context=context), Units(v, context=context)) for k, v in subs.items()}
     return cdat
 
 class Units(object):
     CONTEXTS = dict()
     __DEBUG=False
 
-    # TODO change this to calling units with no arguments
-    @classmethod
-    def create_unitless(cls, **kwargs) -> t_UnitObj:
-        """
-        Returns a unitless class object
-        """
-        return cls(dict(), **kwargs)
-
-    @classmethod
-    def from_any(cls, other : t_UnitsSource) -> t_UnitObj:
-        """
-        Create a new Units class from either a string or an existing units instance.
-        """
-
-        if isinstance(other, cls): # new unit from existing unit... just return it.
-            return other
-        elif other is None: # return empty unit (unitless)
-            return cls.create_unitless()
-
-        try: # maybe string like enough?
-            return cls.from_string(other) #type: ignore
-        except (ValueError, TypeError):
-            pass        
-
-        try: # dictionary like?
-            len(other) #type: ignore
-            other.keys() #type: ignore
-            other.items() #type: ignore
-            return cls(other) #type: ignore
-        except (ValueError, TypeError, AttributeError) as e:
-            logger.error(f"Unable to make new unit from {other}")
-            raise TypeError(f"Unable to make new unit from {other}.  Original exception was {e}")
-
-    @classmethod
-    def from_string(cls, ustring : str, **kwargs) -> t_UnitObj:
-        """
-        Creates a Unit object from a string representation.
-
-        :param ustring: units strng
-        :return: new Units instance
-        :raises TypeError: if input is not string type
-        :raises ValueError: if ustring cannot be split cleanly
-        """
-
+    def _from_string_parser(self, ustring : str) -> dict:
         # hanging dots are tricky... remove them with a regex... maybe we can algo our way out of it later.
         def group_replace(match):
             group_text = match.group(0)
@@ -109,11 +66,11 @@ class Units(object):
         
 
         ndparts1 = ustring_clean.split("/") # get num/den parts (can be any number... a/b/c)
-        if cls.__DEBUG:
+        if self.__DEBUG:
             ndparts2 = [nd.split(".") for nd in ndparts1] # each elemnent is split by a dot
             ndparts3 = [[ep.split("^") for ep in np] for np in ndparts2] # 
         else:
-            ndparts2 = (nd.split(".") for nd in ndparts1) # each elemnent is split by a dot
+            ndparts2 = (nd.split(".") for nd in ndparts1) # each element is split by a dot
             ndparts3 = ((ep.split("^") for ep in np) for np in ndparts2) # 
 
         sdict = {}
@@ -127,7 +84,7 @@ class Units(object):
                 except ValueError:
                     base, exp = (element[0], 1)
 
-                if cls.__DEBUG:
+                if self.__DEBUG:
                     logger.error(f"Converting {ustring}:\n" +
                                 "\n".join(f"{s:15}:{list(o)}" for s, o in {"element": element, "numden": numden, 
                                                                     "ndparts3": [list(o2) for o2 in ndparts3]}.items()))
@@ -182,24 +139,34 @@ class Units(object):
                         exp_int = int(exp)
                         sdict[base] = sdict.get(base, 0) + exp_int*this_exp
                 except (ValueError, TypeError) as e:
-                    raise UnitsConstructionException(ustring, (element, element[-1][-1], numden, ndparts3), msg=f"Original error: {e}")
-                if cls.__DEBUG:
+                    raise UnitsConstructionException(ustring, (element, element[-1][-1], numden, ndparts3), msg=f"Original error: {e}") from e
+                if self.__DEBUG:
                     logger.error(f"After loop... at\n\tgroup_sets: {group_sets}\n\tsign_normal: {sign_normal}\n\tsdict: {sdict}")
 
         _ = sdict.pop("1", None) # remove ones as a base.. 
         _ = sdict.pop("", None) # remove empty as a base.. 
         sdict_clean = {k: v for k, v in sdict.items() if v}
-        obj = cls(sdict_clean, **kwargs)
-        return obj
+        return sdict_clean
 
-    # TODO make the default fallback constructor act like the "from any" for possible other objects
     @singledispatchmethod
-    def __init__(self, s : dict, context : str = "Electrical") -> None:
+    def __init__(self, s: Any, **kwargs) -> None:
         """
-        Units class.  Should be called from one of the .from_* class methods
-        in most cases.  If called directly, returns a unitless unit.
+        Units class.  Can be called with any supported input type:
 
-        Can be represented as a set of two arrays, each containing tuples
+        1. Unit(str): attempts to parse a unit string into a unit class.  Will fail
+        on improperly formatted unit strings.
+        2. Unit(dict): directly uses the supplied dictionary (see implementation notes below)
+        3. Unit(ConfigParameter): creates a new unit instance mathing the supplied config
+        parameter.
+        4. Unit(None): creates a "unitless" instance.
+
+        Calling with no arguments is not supported due to how pythong single
+        dispatch works... sort of lame.
+
+        Optional "context" argument may be suplied to help with simplifications.  If not 
+        provided this defaults to "electrical"
+
+        Internally represented as a set of two arrays, each containing tuples
         of (str:unit, int:exponent).  Units are reconstructed as
 
             n[1][1]^n[1][2] ...
@@ -207,27 +174,33 @@ class Units(object):
             d[1][1]^d[1][2] ...
 
         a string value of "1" is used to denote unit-less.  In such cases the
-        exponent is ignored.
-
-        Stored internally as one dict (s) using negative exponents.
+        exponent is ignored. Stored internally as one dict (s) using negative exponents.
         Unitless instances have s=={}
         """
-        super().__init__()
-        self.s = s
-        self.context = context
+        raise TypeError(f"Unable to create Units from type: {type(s)}")
 
-    # TODO implement these constructors
     @__init__.register(str)
     def _(self, ustring: str, context : str = "Electrical", **kwargs) -> None:
-        pass
+        self.s = self._from_string_parser(ustring)
+        self.context = context
 
     @__init__.register(dict)
     def _(self, s: dict, context : str = "Electrical",  **kwargs) -> None:
-        pass
+        self.s = s
+        self.context = context
 
-    @__init__.register(Units)
-    def _(self, other: t_UnitObj, context: str= "Electrical", **kwargs) -> None:
-        pass
+    @__init__.register(ConfigParameter)
+    def _(self, config: ConfigParameter, context: str = "Electrical", **kwargs) -> None:
+        """Handles initialization from a ConfigParameter by using its string value."""
+        # The value of a ConfigParameter can be of various types.
+        # Instead of forcing a string conversion, we get the underlying value
+        # and re-dispatch to the appropriate __init__ method based on its type.
+        self.__init__(config.get(), context=context, **kwargs)
+
+    @__init__.register(type(None))
+    def _(self, s: None = None, context: str = "Electrical", **kwargs) -> None:
+        self.s = {}
+        self.context = context
 
     def __copy__(self):
         ns = self.s.copy() # dictionary, so copy it
@@ -243,7 +216,7 @@ class Units(object):
         try: # get base data if exists
             s2 = other.s
         except AttributeError: # if not, try and make a new units from it
-            u2 = self.from_any(other)
+            u2 = Units(other)
             s2 = u2.s
         ur = {u: self.s.get(u,0) + s2.get(u,0) for u in set(self.s.keys() | s2.keys())}
         return Units(ur)
@@ -294,7 +267,7 @@ class Units(object):
         try:  # get base data if exists
             s2 = other.s
         except AttributeError:  # if not, try and make a new units from it
-            u2 = self.from_any(other)
+            u2 = Units(other)
             s2 = u2.s
 
         ur = {u: self.s.get(u, 0) - s2.get(u, 0) for u in set(self.s.keys() | s2.keys())}
@@ -309,7 +282,7 @@ class Units(object):
         try:  # get base data if exists
             s2 = other.s
         except AttributeError:  # if not, try and make a new units from it
-            u2 = self.from_any(other)
+            u2 = Units(other)
             s2 = u2.s
 
         ur = {u: s2.get(u, 0) - self.s.get(u, 0) for u in set(self.s.keys() | s2.keys())}
@@ -319,7 +292,7 @@ class Units(object):
         try:
             s2 = other.s
         except AttributeError:
-            u2 = self.from_any(other)
+            u2 = Units(other)
             s2 = u2.s
         
         return self.s == s2
@@ -341,7 +314,7 @@ class Units(object):
             logger.info(f"Loaded new units context: {self.context}")
 
         selfinfo = self.CONTEXTS[self.context].get(str(self), None)
-        if selfinfo is None:
+        if selfinfo is None: # pragma: no cover
             raise UnitsConversionException(self, newunits, 
                                            notes="Initial units do not exist in context - not a basic unit?")
         convfactors = selfinfo.get("c", dict()).get(str(newunits), None)
@@ -407,7 +380,7 @@ class Units(object):
             if name[0] == "_": # check first to avoid error
                 pass
             elif values["u"] == self:
-                return Units.from_string(name, context=self.context)
+                return Units(name, context=self.context)
             else: # not found... go to next... do nothing :(
                 pass
 
@@ -441,3 +414,8 @@ class Units(object):
     @property
     def unitless(self):
         return len(self.s) == 0
+
+@Units.__init__.register(Units)
+def _(self, other: Units, context: str= "Electrical", **kwargs) -> None:
+    self.s = other.s.copy()
+    self.context = kwargs.get('context', other.context)

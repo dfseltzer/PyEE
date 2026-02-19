@@ -20,7 +20,7 @@ from pyee.exceptions import UnitsMissmatchException
 from pyee import DEFAULT_FREQUENCY_UNITS, ERROR_ON_UNIT_MISSMATCH
 
 class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
-    _UNITS = Units.from_string("") # placeholder - subs should overwrite.
+    _UNITS = Units("") # placeholder - subs should overwrite.
 
     @singledispatchmethod
     def __init__(self, value:object, *args, **kwargs) -> None:
@@ -173,7 +173,7 @@ class PassiveComponent(PhysicalQuantity, metaclass=ABCMeta):
         pass
 
 class Resistor(PassiveComponent):
-    _UNITS = Units.from_string("Ohm")
+    _UNITS = Units("Ohm")
 
     @property
     def Z(self):
@@ -184,7 +184,7 @@ class Resistor(PassiveComponent):
         return self._UNITS
 
 class Inductor(PassiveComponent):
-    _UNITS = Units.from_string("H")
+    _UNITS = Units("H")
 
     @property
     def Z(self):
@@ -195,7 +195,7 @@ class Inductor(PassiveComponent):
         return self._UNITS
 
 class Capacitor(PassiveComponent):
-    _UNITS = Units.from_string("F")
+    _UNITS = Units("F")
 
     @property
     def Z(self):
@@ -204,5 +204,3 @@ class Capacitor(PassiveComponent):
     @property
     def default_units(self) -> t_UnitObj:
         return self._UNITS
-
-

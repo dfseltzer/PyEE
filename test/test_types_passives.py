@@ -167,8 +167,8 @@ class TestCase_create_invalid_inputs(unittest.TestCase):
         """Test that creating Resistor with wrong units raises UnitsMissmatchException"""
         from pyee.exceptions import UnitsMissmatchException
         from pyee.types.units import Units
-        
-        wrong_units = Units.from_string("H")  # Henry instead of Ohm
+
+        wrong_units = Units("H")  # Henry instead of Ohm
         with self.assertRaises(UnitsMissmatchException):
             self.Resistor(1000, units=wrong_units)
 
@@ -176,8 +176,8 @@ class TestCase_create_invalid_inputs(unittest.TestCase):
         """Test that creating Capacitor with wrong units raises UnitsMissmatchException"""
         from pyee.exceptions import UnitsMissmatchException
         from pyee.types.units import Units
-        
-        wrong_units = Units.from_string("Ohm")  # Ohm instead of Farad
+
+        wrong_units = Units("Ohm")  # Ohm instead of Farad
         with self.assertRaises(UnitsMissmatchException):
             self.Capacitor(1e-6, units=wrong_units)
 

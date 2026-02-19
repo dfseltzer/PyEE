@@ -67,6 +67,6 @@ def vpu_from_ustring(ustring : str) -> tuple[t_numeric, "Prefix", "Units"]:
     val = float(val_s)
     prefix = Prefix.from_string(prefix_s)
     val_u, prefix_u = Prefix.rebalance(val, prefix)
-    units = Units.from_string(parts[1] if len(parts) == 2 else "")
+    units = Units(parts[1] if len(parts) == 2 else "")
 
     return val_u, prefix_u, units
