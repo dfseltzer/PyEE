@@ -35,24 +35,6 @@ type t_UnitsSource = str | dict | t_UnitObj | None | ConfigParameter
 
 logger = logging.getLogger(__name__)
 
-def load_unit_context(context: str) -> dict:
-    """
-    Loads a set of units from a json file.  the filename to be loaded is
-
-    SI_units_<lower(context)>.json
-
-    :param context: file identifier to load
-    :return: dictionary mapping unit symbol to unit name, description, and base, where
-        base is a representation of the unit in SI base types.
-    """
-    fname = f"SI_units_{context.lower()}"
-    rdat = load_data_file(fname)
-    subs = rdat.pop("_subs",dict())
-    cdat = {s: {"n":d["name"], "info":d["quantity"], "u":Units(d["base"]), 
-                "c": d.get("conversions", dict())} for s, d in rdat.items()}
-    cdat["_subs"] = {k: (Units(k, context=context), Units(v, context=context)) for k, v in subs.items()}
-    return cdat
-
 class Units(object):
     CONTEXTS = dict()
     __DEBUG=False
@@ -147,6 +129,25 @@ class Units(object):
         _ = sdict.pop("", None) # remove empty as a base.. 
         sdict_clean = {k: v for k, v in sdict.items() if v}
         return sdict_clean
+
+    @staticmethod
+    def _load_context(context: str) -> dict:
+        """
+        Loads a set of units from a json file.  the filename to be loaded is
+
+        SI_units_<lower(context)>.json
+
+        :param context: file identifier to load
+        :return: dictionary mapping unit symbol to unit name, description, and base, where
+            base is a representation of the unit in SI base types.
+        """
+        fname = f"SI_units_{context.lower()}"
+        rdat = load_data_file(fname)
+        subs = rdat.pop("_subs",dict())
+        cdat = {s: {"n":d["name"], "info":d["quantity"], "u":Units(d["base"]), 
+                    "c": d.get("conversions", dict())} for s, d in rdat.items()}
+        cdat["_subs"] = {k: (Units(k, context=context), Units(v, context=context)) for k, v in subs.items()}
+        return cdat
 
     @singledispatchmethod
     def __init__(self, s: Any, **kwargs) -> None:
@@ -317,7 +318,7 @@ class Units(object):
             return lambda x: x
 
         if self.context not in self.CONTEXTS.keys(): # load new context if we do not have it already
-            Units.CONTEXTS[self.context] = load_unit_context(self.context)
+            Units.CONTEXTS[self.context] = Units._load_context(self.context)
             logger.info(f"Loaded new units context: {self.context}")
 
         selfinfo = self.CONTEXTS[self.context].get(str(self), None)
