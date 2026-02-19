@@ -10,12 +10,12 @@ class TestCase_from_string(unittest.TestCase):
     def test_create_empty_units_string(self):
         empty_strs = ["1", "1/1", "1/(1)", "(1)/1", "s/s", "s.s^-1"]
         for ustring in empty_strs:
-            u = Units(ustring)
-            self.assertDictEqual(u.s, {})
+            u = Units(ustring) # Creates a unitless instance
+            self.assertTrue(u == None)
 
     def test_create_empty_units_direct(self):
         u = Units({})
-        self.assertDictEqual(u.s, {})
+        self.assertTrue(u == None)
 
     def test_create_simple_1(self):
         # no demoninator, no paranthesis

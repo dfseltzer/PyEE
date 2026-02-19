@@ -158,7 +158,9 @@ class Units(object):
         2. Unit(dict): directly uses the supplied dictionary (see implementation notes below)
         3. Unit(ConfigParameter): creates a new unit instance mathing the supplied config
         parameter.
-        4. Unit(None): creates a "unitless" instance.
+        4. Unit(Type[Unit] Instance): creates a new instance representing the same units.  Can be used 
+        to change unit contexts or create copies.
+        5. Unit(None): creates a "unitless" instance.
 
         Calling with no arguments is not supported due to how pythong single
         dispatch works... sort of lame.
@@ -289,6 +291,11 @@ class Units(object):
         return Units(ur)
 
     def __eq__(self, other):
+        # see if this is a unitless check
+        if other is None:
+            return not self.s
+        
+        # normal case now
         try:
             s2 = other.s
         except AttributeError:
@@ -396,24 +403,19 @@ class Units(object):
         return self
 
     @property
-    def n(self):
+    def n(self) -> "Units":
         """
-        Numerator sets
-        :return: n = [(s, e), ...]
+        Numerator.  Returns a new Unit instance with only elements whose exponents are positive.
         """
         return Units({s: e for s, e in self.s.items() if e > 0})
 
     @property
-    def d(self):
+    def d(self) -> "Units":
         """
-        Denominator sets
-        :return: d = [(s, e), ...]
+        Denominator. Returns a new Unit instance with only elements whose exponents are negative.
+        Flips the sign so these are now positive exponents (should be what is expected)
         """
         return Units({s: -e for s, e in self.s.items() if e < 0})
-
-    @property
-    def unitless(self):
-        return len(self.s) == 0
 
 @Units.__init__.register(Units)
 def _(self, other: Units, context: str= "Electrical", **kwargs) -> None:
