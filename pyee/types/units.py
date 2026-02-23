@@ -1,5 +1,8 @@
 """
-Units class definitions for unit aware numbers and helpers.
+Units class definitions for unit aware numbers and helpers.  Provides the Units class, which is used to
+store representations of units.  Allows math operators on units, conversion to other units,
+and simplification of units.  Can be used alone to check units, or used by other classes to add 
+unit aware operations.
 
 Makes heavy uses of "unit strings" - abbreviated as "ustrings".  These strings
 follow the formatting rules below,
@@ -15,7 +18,6 @@ Some examples include...
     Pa = kg.m^-1.s^-2 = kg/m/s^2 = kg/(m.s^2)
 
 Attempting to write pascals as "kg/m.s^2" is incorrect.
-
 """
 
 import re
@@ -308,6 +310,10 @@ class Units(object):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __bool__(self):
+        """A Units object is True if it has units, and False if it is unitless."""
+        return bool(self.s)
+
     def convert_to(self, newunits: t_UnitObj) -> Callable:
         """
         Tries to allow unit conversion.  Only really works on base units for now.
@@ -344,7 +350,7 @@ class Units(object):
             self.context = context
 
         if self.context not in self.CONTEXTS.keys(): # load new context if we do not have it already
-            Units.CONTEXTS[self.context] = load_unit_context(self.context)
+            Units.CONTEXTS[self.context] = Units._load_context(self.context)
             logger.info(f"Loaded new units context: {self.context}")
 
         cntxt = Units.CONTEXTS[self.context] # just to avoid typing a bunch...
@@ -357,7 +363,7 @@ class Units(object):
             else:
                 sbase[u] = sbase.get(u, 0) + e
         
-        return Units(s=sbase, context=self.context)
+        return Units(sbase, context=self.context)
 
     def copy(self) -> "Units":
         return self.__copy__()
